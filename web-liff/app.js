@@ -78,6 +78,8 @@
   // 1. Boot & Setup
   // --------------------------------------------------------------------------
   async function initApp() {
+    bindEvents();
+
     // 1. Supabase Init
     if (window.supabase && window.APP_CONFIG && window.APP_CONFIG.SUPABASE_URL) {
       try {
@@ -113,20 +115,25 @@
 
     // 3. Resolve Authenticated Student Identity
     if (liffLoggedIn && currentLineProfile && supabaseClient) {
-      const { data, error } = await supabaseClient
-        .from('students')
-        .select('*')
-        .eq('line_user_id', currentLineProfile.userId)
-        .single();
+      try {
+        const { data, error } = await supabaseClient
+          .from('students')
+          .select('*')
+          .eq('line_user_id', currentLineProfile.userId)
+          .maybeSingle();
 
-      if (data && !error) {
-        // Existing linked student -> Login immediately!
-        activeStudent = data;
-        await fetchStudentCoupons();
-        await fetchStudentRecycleLogs();
-        renderAll();
-      } else {
-        // First-time user in LINE -> Open Account Binding Modal
+        if (data && !error) {
+          // Existing linked student -> Login immediately!
+          activeStudent = data;
+          await fetchStudentCoupons();
+          await fetchStudentRecycleLogs();
+          renderAll();
+        } else {
+          // First-time user in LINE -> Open Account Binding Modal
+          openLineBindingModal(currentLineProfile);
+        }
+      } catch (err) {
+        console.warn("Error resolving student profile:", err);
         openLineBindingModal(currentLineProfile);
       }
     } else {
@@ -137,7 +144,6 @@
     }
 
     await fetchRewards();
-    bindEvents();
   }
 
   // --------------------------------------------------------------------------
@@ -176,7 +182,7 @@
         .from('students')
         .select('*')
         .eq('student_id', studentId)
-        .single();
+        .maybeSingle();
 
       if (data && !error) {
         pendingBindingStudent = data;
@@ -516,11 +522,13 @@
     }
 
     grid.innerHTML = displayRewards.map((r, index) => {
-      const canAfford = activeStudent.current_points >= r.points_required;
+      const userPts = activeStudent ? (activeStudent.current_points || 0) : 0;
+      const canAfford = userPts >= r.points_required;
       const inStock = r.stock_quantity > 0;
       const bgColor = PASTEL_COLORS[index % PASTEL_COLORS.length];
       const isSoldOut = !inStock;
       const isInsufficient = inStock && !canAfford;
+      const neededPts = Math.max(0, r.points_required - userPts);
 
       return `
         <div class="bg-surface-container-lowest rounded-[24px] sm:rounded-[32px] flex flex-col p-2 sm:p-2.5 reward-card h-full ${isSoldOut ? 'opacity-70 grayscale-[30%]' : ''}">
@@ -546,9 +554,9 @@
                 Sold Out
               </button>
             ` : isInsufficient ? `
-              <button class="w-full bg-surface-variant text-on-surface-variant font-display text-[11px] sm:text-[13px] font-extrabold py-2.5 sm:py-3 rounded-[16px] sm:rounded-[20px] cursor-pointer border-b-4 border-outline-variant flex items-center justify-center gap-1 hover:bg-surface-variant/80" onclick="alert('สะสมอีก ${(r.points_required - activeStudent.current_points).toLocaleString()} แต้มเพื่อแลกชิ้นนี้ (หยอดขวด PET เพิ่มอีก ${Math.ceil((r.points_required - activeStudent.current_points) / 10)} ขวดนะ!)')">
+              <button class="w-full bg-surface-variant text-on-surface-variant font-display text-[11px] sm:text-[13px] font-extrabold py-2.5 sm:py-3 rounded-[16px] sm:rounded-[20px] cursor-pointer border-b-4 border-outline-variant flex items-center justify-center gap-1 hover:bg-surface-variant/80" onclick="alert('สะสมอีก ${neededPts.toLocaleString()} แต้มเพื่อแลกชิ้นนี้ (หยอดขวด PET เพิ่มอีก ${Math.ceil(neededPts / 10)} ขวดนะ!)')">
                 <span class="material-symbols-rounded text-base sm:text-lg" style="font-variation-settings: 'FILL' 1;">lock</span>
-                Need ${(r.points_required - activeStudent.current_points).toLocaleString()}
+                Need ${neededPts.toLocaleString()}
               </button>
             ` : `
               <button class="w-full bg-primary-container text-on-primary font-display text-[13px] sm:text-[15px] font-extrabold py-2.5 sm:py-3 rounded-[16px] sm:rounded-[20px] btn-squishy hover:bg-primary border-b-4 border-on-primary-container flex items-center justify-center gap-1 shadow-sm btn-redeem cursor-pointer" data-reward-id="${r.reward_id}">
