@@ -128,22 +128,36 @@
           await fetchStudentCoupons();
           await fetchStudentRecycleLogs();
           renderAll();
+          hideSplashScreen();
         } else {
           // First-time user in LINE -> Open Account Binding Modal
           openLineBindingModal(currentLineProfile);
+          hideSplashScreen();
         }
       } catch (err) {
         console.warn("Error resolving student profile:", err);
         openLineBindingModal(currentLineProfile);
+        hideSplashScreen();
       }
     } else {
       // Local development test fallback
       const urlParams = new URLSearchParams(window.location.search);
       const targetId = urlParams.get('student_id') || '32650';
       await loginStudent(targetId);
+      hideSplashScreen();
     }
 
     await fetchRewards();
+  }
+
+  function hideSplashScreen() {
+    const splash = document.getElementById('app-splash-screen');
+    if (splash) {
+      splash.classList.add('opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        if (splash.parentNode) splash.parentNode.removeChild(splash);
+      }, 500);
+    }
   }
 
   // --------------------------------------------------------------------------
