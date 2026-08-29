@@ -529,7 +529,7 @@
       if (avatarImg) avatarImg.src = currentLineProfile.pictureUrl;
     }
 
-    const isCouncil = activeStudent.is_council_member || activeStudent.student_id === '32650';
+    const isCouncil = activeStudent.student_id === '32650' && activeStudent.is_council_member === true;
     const roleBadgeEl = document.getElementById('header-role-badge');
     if (roleBadgeEl) {
       if (isCouncil) {
@@ -728,7 +728,7 @@
     document.getElementById('prof-phone').value = activeStudent.phone_number || '';
 
     // Dynamic Role-Based Buttons (Council Scanner & Admin Portal)
-    const isCouncil = activeStudent.is_council_member || activeStudent.student_id === '32650';
+    const isCouncil = activeStudent.student_id === '32650' && activeStudent.is_council_member === true;
     const navCouncilCenter = document.getElementById('nav-council-center-item');
     const councilProfileBox = document.getElementById('box-council-profile-shortcut');
     const adminProfileBox = document.getElementById('box-admin-profile-shortcut');

@@ -83,29 +83,33 @@
 
     if (supabaseClient) {
       try {
+        // 1. If logged in via LINE LIFF, verify LINE identity belongs to student 32650
         if (window.liff && liff.isLoggedIn()) {
           const profile = await liff.getProfile();
           const { data, error } = await supabaseClient
             .from('students')
             .select('*')
             .eq('line_user_id', profile.userId)
-            .single();
+            .maybeSingle();
 
           if (data && !error) {
             currentAdminUser = data;
-            return data.is_council_member === true;
+            // Sole Admin Enforcement: Only student 32650 with is_council_member === true
+            return data.student_id === '32650' && data.is_council_member === true;
           }
         }
 
+        // 2. Direct student ID lookup
         const { data, error } = await supabaseClient
           .from('students')
           .select('*')
           .eq('student_id', paramStudentId)
-          .single();
+          .maybeSingle();
 
         if (data && !error) {
           currentAdminUser = data;
-          return data.is_council_member === true || paramStudentId === '32650';
+          // Sole Admin Enforcement: Only student 32650 with is_council_member === true
+          return data.student_id === '32650' && data.is_council_member === true;
         }
       } catch (err) {
         console.warn("Auth check error:", err);
@@ -121,15 +125,9 @@
         is_council_member: true
       };
       return true;
-    } else {
-      currentAdminUser = {
-        student_id: paramStudentId,
-        full_name: 'นักเรียนทั่วไป',
-        room: 'ม.1/1',
-        is_council_member: false
-      };
-      return false;
     }
+
+    return false;
   }
 
   function showAccessDeniedScreen() {
