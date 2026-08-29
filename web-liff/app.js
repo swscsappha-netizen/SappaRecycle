@@ -206,26 +206,86 @@
     }
   }
 
+  // --------------------------------------------------------------------------
+  // Custom Toast & Modal Notification System
+  // --------------------------------------------------------------------------
+  function showToast(message, type = 'success', duration = 3200) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    const isError = type === 'error';
+    const isWarning = type === 'warning';
+    const isInfo = type === 'info';
+
+    const bgClass = isError
+      ? 'bg-red-50 border-red-300 text-red-800'
+      : isWarning
+      ? 'bg-amber-50 border-amber-300 text-amber-900'
+      : isInfo
+      ? 'bg-blue-50 border-blue-300 text-blue-900'
+      : 'bg-[#E8F8EE] border-[#86EFAC] text-[#006e1c]';
+
+    const iconName = isError
+      ? 'error'
+      : isWarning
+      ? 'warning'
+      : isInfo
+      ? 'info'
+      : 'check_circle';
+
+    toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-[20px] border-2 shadow-xl backdrop-blur-md animate-bounce-in transition-all duration-300 ${bgClass}`;
+    toast.innerHTML = `
+      <span class="material-symbols-rounded text-xl shrink-0" style="font-variation-settings: 'FILL' 1;">${iconName}</span>
+      <span class="font-display font-extrabold text-[13px] leading-tight flex-1">${message}</span>
+    `;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(-10px)';
+      setTimeout(() => toast.remove(), 300);
+    }, duration);
+  }
+  window.showToast = showToast;
+
+  function showBindingSuccessModal(student) {
+    const modal = document.getElementById('modal-bind-success');
+    const nameEl = document.getElementById('success-bind-name');
+    const metaEl = document.getElementById('success-bind-meta');
+    const descEl = document.getElementById('success-bind-desc');
+
+    if (nameEl) nameEl.textContent = student.full_name;
+    if (metaEl) metaEl.textContent = `รหัส: ${student.student_id} | ชั้น ${student.room} (เลขที่ ${student.no || '-'})`;
+    if (descEl) descEl.textContent = `ผูกบัญชี LINE กับคุณ "${student.full_name}" เรียบร้อยแล้ว`;
+
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+  }
+
   async function confirmLineBinding() {
     const studentIdInput = document.getElementById('line-bind-student-id').value.trim();
     const phoneInput = document.getElementById('line-bind-phone').value.trim();
     const confirmBtn = document.getElementById('btn-confirm-line-bind');
 
     if (!studentIdInput || studentIdInput.length !== 5) {
-      alert('กรุณาระบุรหัสนักเรียน 5 หลักให้ถูกต้อง');
+      showToast('กรุณาระบุรหัสนักเรียน 5 หลักให้ถูกต้อง', 'warning');
       return;
     }
 
     if (!pendingBindingStudent) {
       await lookupStudentForBinding(studentIdInput);
       if (!pendingBindingStudent) {
-        alert('ไม่พบรหัสนักเรียนนี้ในฐานข้อมูลโรงเรียนสรรพวิทยาคม');
+        showToast('ไม่พบรหัสนักเรียนนี้ในฐานข้อมูลโรงเรียนสรรพวิทยาคม', 'error');
         return;
       }
     }
 
     if (!currentLineProfile || !supabaseClient) {
-      alert('ไม่พบการเชื่อมต่อ LINE Account');
+      showToast('ไม่พบการเชื่อมต่อ LINE Account', 'error');
       return;
     }
 
@@ -260,16 +320,16 @@
       }
 
       if (typeof window.confetti === 'function') {
-        window.confetti({ particleCount: 80, spread: 70 });
+        window.confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
       }
 
-      alert(`🎉 ผูกบัญชี LINE กับคุณ "${activeStudent.full_name}" สำเร็จเรียบร้อยแล้ว!`);
+      showBindingSuccessModal(activeStudent);
       await fetchStudentCoupons();
       await fetchStudentRecycleLogs();
       renderAll();
     } catch (e) {
       console.error("Binding error:", e);
-      alert('เกิดข้อผิดพลาดในการผูกบัญชี: ' + (e.message || e));
+      showToast('เกิดข้อผิดพลาดในการผูกบัญชี: ' + (e.message || e), 'error');
     } finally {
       if (confirmBtn) {
         confirmBtn.innerHTML = 'ยืนยันผูกบัญชี LINE เข้าใช้งาน 🔗';
@@ -549,12 +609,12 @@
             </div>
 
             ${isSoldOut ? `
-              <button class="w-full bg-surface-variant text-on-surface-variant font-display text-[12px] sm:text-[14px] font-extrabold py-2.5 sm:py-3 rounded-[16px] sm:rounded-[20px] cursor-not-allowed btn-disabled flex items-center justify-center gap-1" onclick="alert('ของรางวัลนี้หมดสต็อกชั่วคราว')">
+              <button class="w-full bg-surface-variant text-on-surface-variant font-display text-[12px] sm:text-[14px] font-extrabold py-2.5 sm:py-3 rounded-[16px] sm:rounded-[20px] cursor-not-allowed btn-disabled flex items-center justify-center gap-1" onclick="window.showToast('ของรางวัลนี้หมดสต็อกชั่วคราว', 'warning')">
                 <span class="material-symbols-rounded text-base sm:text-lg" style="font-variation-settings: 'FILL' 1;">block</span>
                 Sold Out
               </button>
             ` : isInsufficient ? `
-              <button class="w-full bg-surface-variant text-on-surface-variant font-display text-[11px] sm:text-[13px] font-extrabold py-2.5 sm:py-3 rounded-[16px] sm:rounded-[20px] cursor-pointer border-b-4 border-outline-variant flex items-center justify-center gap-1 hover:bg-surface-variant/80" onclick="alert('สะสมอีก ${neededPts.toLocaleString()} แต้มเพื่อแลกชิ้นนี้ (หยอดขวด PET เพิ่มอีก ${Math.ceil(neededPts / 10)} ขวดนะ!)')">
+              <button class="w-full bg-surface-variant text-on-surface-variant font-display text-[11px] sm:text-[13px] font-extrabold py-2.5 sm:py-3 rounded-[16px] sm:rounded-[20px] cursor-pointer border-b-4 border-outline-variant flex items-center justify-center gap-1 hover:bg-surface-variant/80" onclick="window.showToast('สะสมอีก ${neededPts.toLocaleString()} แต้มเพื่อแลกชิ้นนี้ (หยอดขวด PET เพิ่มอีก ${Math.ceil(neededPts / 10)} ขวดนะ!)', 'info')">
                 <span class="material-symbols-rounded text-base sm:text-lg" style="font-variation-settings: 'FILL' 1;">lock</span>
                 Need ${neededPts.toLocaleString()}
               </button>
@@ -1295,7 +1355,7 @@
     document.getElementById('btn-gatekeeper-save')?.addEventListener('click', async () => {
       const phone = document.getElementById('input-gatekeeper-phone').value.trim();
       if (phone.length < 9) {
-        alert('กรุณากรอกเบอร์โทรศัพท์ 10 หลักให้ถูกต้อง');
+        showToast('กรุณากรอกเบอร์โทรศัพท์ 10 หลักให้ถูกต้อง', 'warning');
         return;
       }
       activeStudent.phone_number = phone;
@@ -1326,7 +1386,7 @@
     document.getElementById('btn-verify-manual')?.addEventListener('click', () => {
       const code = document.getElementById('input-manual-coupon-code').value.trim();
       if (code) handleScannedCouponCode(code);
-      else alert('กรุณากรอกรหัสคูปองก่อนกดตรวจสอบ');
+      else showToast('กรุณากรอกรหัสคูปองก่อนกดตรวจสอบ', 'warning');
     });
     document.getElementById('btn-verify-cancel')?.addEventListener('click', () => {
       document.getElementById('modal-council-verify').classList.add('hidden');
@@ -1346,6 +1406,14 @@
     });
     document.getElementById('btn-confirm-line-bind')?.addEventListener('click', confirmLineBinding);
 
+    document.getElementById('btn-close-bind-success')?.addEventListener('click', () => {
+      const modal = document.getElementById('modal-bind-success');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+      showToast(`ยินดีต้อนรับคุณ ${activeStudent?.full_name || ''} 🌿`);
+    });
   }
 
   document.addEventListener('DOMContentLoaded', initApp);
