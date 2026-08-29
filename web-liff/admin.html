@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html class="light" lang="th">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+  <title>SappaRecycle Backoffice - ระบบจัดการแอดมิน โรงเรียนสรรพวิทยาคม</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  
+  <!-- Fonts: Plus Jakarta Sans, Be Vietnam Pro, Prompt -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Prompt:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  
+  <!-- Material Symbols Rounded Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Chart.js CDN for Analytics & Daily/Monthly Graphs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  
+  <!-- LINE LIFF SDK -->
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  
+  <!-- App Config -->
+  <script src="config.js"></script>
+
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#006e1c",
+            "primary-container": "#4caf50",
+            "on-primary": "#ffffff",
+            "on-primary-container": "#003c0b",
+            "secondary": "#556158",
+            "secondary-container": "#d9e6da",
+            "tertiary": "#735c00",
+            "tertiary-container": "#cda721",
+            "surface": "#f8faf8",
+            "surface-variant": "#e1e3e1",
+            "surface-container-low": "#f2f4f2",
+            "surface-container": "#eceeec",
+            "surface-container-high": "#e6e9e7",
+            "surface-container-lowest": "#ffffff",
+            "on-surface": "#191c1b",
+            "on-surface-variant": "#3f4a3c",
+            "outline": "#6f7a6b",
+            "outline-variant": "#becab9",
+            "error": "#ba1a1a",
+            "error-container": "#ffdad6"
+          },
+          fontFamily: {
+            "display": ["Plus Jakarta Sans", "Prompt", "sans-serif"],
+            "body": ["Be Vietnam Pro", "Prompt", "sans-serif"],
+            "thai": ["Prompt", "sans-serif"]
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    .btn-squishy {
+      transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .btn-squishy:active:not(:disabled) {
+      transform: translateY(2px);
+      border-bottom-width: 0px !important;
+      margin-top: 2px;
+    }
+    .admin-nav-btn.active {
+      background-color: #006e1c !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 12px rgba(0, 110, 28, 0.25);
+    }
+    .admin-card {
+      box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.04);
+      border: 2px solid rgba(0, 110, 28, 0.1);
+    }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="bg-[#f4f7f4] text-on-surface font-body min-h-screen pb-16 flex flex-col items-center selection:bg-primary-container selection:text-white">
+  
+  <!-- ===================================================================
+       ACCESS DENIED SHIELD (แสดงเมื่อไม่มีสิทธิ์แอดมิน)
+       =================================================================== -->
+  <div class="w-full min-h-screen flex items-center justify-center p-4" id="view-access-denied" style="display: none;">
+    <div class="bg-white rounded-[32px] p-8 max-w-md w-full border-4 border-red-600 shadow-2xl text-center flex flex-col items-center gap-4 animate-bounce-in">
+      <div class="w-20 h-20 rounded-full bg-red-100 text-red-600 flex items-center justify-center border-4 border-white shadow-md rotate-[-6deg]">
+        <span class="material-symbols-rounded text-5xl">lock</span>
+      </div>
+      <div>
+        <h2 class="font-display text-[22px] font-black text-red-600 tracking-tight">⛔ ปฏิเสธการเข้าถึง (403 Forbidden)</h2>
+        <p class="text-[14px] text-on-surface-variant font-bold mt-2 leading-relaxed">
+          ขออภัย หน้านี้สงวนสิทธิ์เฉพาะ <b class="text-on-surface">คณะกรรมการสภานักเรียนและคุณครูผู้ดูแลระบบ</b> ของโรงเรียนสรรพวิทยาคมเท่านั้น
+        </p>
+      </div>
+
+      <div class="bg-red-50 p-3.5 rounded-[18px] border border-red-200 text-left text-[12px] w-full flex flex-col gap-1">
+        <div class="flex justify-between"><span class="text-on-surface-variant font-bold">บัญชีปัจจุบัน:</span><strong id="denied-user-name" class="text-on-surface">นักเรียนทั่วไป</strong></div>
+        <div class="flex justify-between"><span class="text-on-surface-variant font-bold">สิทธิ์การเข้าถึง:</span><span class="text-red-600 font-black">ไม่มีสิทธิ์แอดมิน (is_council_member = FALSE)</span></div>
+      </div>
+
+      <a href="index.html" class="w-full bg-primary text-on-primary font-bold py-3.5 rounded-[20px] btn-squishy hover:bg-primary-container border-b-4 border-on-primary-container flex items-center justify-center gap-2 shadow-sm text-[14px]">
+        <span class="material-symbols-rounded">arrow_back</span>
+        <span>กลับสู่หน้าหลักนักเรียน</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       MAIN ADMIN DASHBOARD WRAPPER (แสดงเฉพาะแอดมินที่ผ่านการตรวจสอบสิทธิ์)
+       =================================================================== -->
+  <div class="w-full flex flex-col items-center" id="view-admin-dashboard">
+
+    <!-- Header Bar -->
+    <header class="w-full bg-white border-b-2 border-secondary-container shadow-xs sticky top-0 z-40">
+      <div class="max-w-6xl mx-auto px-4 py-3.5 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-[16px] bg-red-600 text-white flex items-center justify-center shadow-md rotate-[-3deg]">
+            <span class="material-symbols-rounded text-2xl">admin_panel_settings</span>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="font-display text-[18px] sm:text-[22px] font-black text-primary tracking-tight leading-none">SappaRecycle Admin</h1>
+              <span class="bg-red-100 text-red-700 text-[10px] font-black px-2 py-0.5 rounded-full border border-red-200">แผงควบคุม</span>
+            </div>
+            <span class="text-[11px] font-bold text-on-surface-variant font-thai">ระบบจัดการหลังบ้าน โรงเรียนสรรพวิทยาคม</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <div class="text-right hidden sm:block">
+            <span class="text-[10px] text-on-surface-variant font-bold block">ผู้ดูแลระบบที่ล็อกอิน</span>
+            <strong class="text-[12px] text-primary font-black" id="admin-officer-name">เด็กชายณัฐชนน อรรถศิริ</strong>
+          </div>
+          <a href="index.html" class="flex items-center gap-1.5 bg-secondary-container text-primary font-bold text-[12px] sm:text-[13px] px-3.5 py-2 rounded-[14px] hover:bg-primary hover:text-white transition-colors">
+            <span class="material-symbols-rounded text-base">smartphone</span>
+            <span class="hidden sm:inline">เปิดหน้านักเรียน</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <div class="w-full max-w-6xl mx-auto px-4 mt-5 flex flex-col gap-6">
+
+      <!-- Main Navigation Tabs (Clean, Responsive, No Truncation) -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 bg-white p-2 rounded-[22px] border-2 border-secondary-container shadow-xs w-full">
+        <button class="admin-nav-btn active flex items-center justify-center gap-2 px-3 py-2.5 sm:py-3 rounded-[16px] font-extrabold text-[12px] sm:text-[13px] transition-all cursor-pointer text-center" data-tab="tab-manage-analytics">
+          <span class="material-symbols-rounded text-lg sm:text-xl shrink-0">analytics</span>
+          <span class="truncate">1. สรุปสถิติ (Analytics)</span>
+        </button>
+        <button class="admin-nav-btn flex items-center justify-center gap-2 px-3 py-2.5 sm:py-3 rounded-[16px] text-on-surface-variant hover:bg-secondary-container/40 font-extrabold text-[12px] sm:text-[13px] transition-all cursor-pointer text-center" data-tab="tab-manage-rewards">
+          <span class="material-symbols-rounded text-lg sm:text-xl shrink-0">storefront</span>
+          <span class="truncate">2. จัดการของรางวัล</span>
+        </button>
+        <button class="admin-nav-btn flex items-center justify-center gap-2 px-3 py-2.5 sm:py-3 rounded-[16px] text-on-surface-variant hover:bg-secondary-container/40 font-extrabold text-[12px] sm:text-[13px] transition-all cursor-pointer text-center" data-tab="tab-manage-students">
+          <span class="material-symbols-rounded text-lg sm:text-xl shrink-0">manage_accounts</span>
+          <span class="truncate">3. ปรับแก้แต้มนักเรียน</span>
+        </button>
+        <button class="admin-nav-btn flex items-center justify-center gap-2 px-3 py-2.5 sm:py-3 rounded-[16px] text-on-surface-variant hover:bg-secondary-container/40 font-extrabold text-[12px] sm:text-[13px] transition-all cursor-pointer text-center" data-tab="tab-manage-coupons">
+          <span class="material-symbols-rounded text-lg sm:text-xl shrink-0">confirmation_number</span>
+          <span class="truncate">4. จัดการคูปองรางวัล</span>
+        </button>
+      </div>
+
+      <!-- ===================================================================
+           VIEW 0: แดชบอร์ดสรุปสถิติ รายวัน / รายเดือน (Analytics Dashboard)
+           =================================================================== -->
+      <section class="admin-tab-pane flex flex-col gap-6" id="tab-manage-analytics">
+        
+        <!-- Controls & Timeframe Filters -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div>
+            <h2 class="font-display text-[20px] sm:text-[22px] font-black text-on-surface">รายงานและสถิติการรีไซเคิล 📊</h2>
+            <p class="text-[13px] text-on-surface-variant font-bold">ติดตามปริมาณขวด การแจกแต้ม และผลกระทบต่อสิ่งแวดล้อมของโรงเรียน</p>
+          </div>
+
+          <!-- Time Horizon Filter -->
+          <div class="flex gap-1.5 bg-white p-1.5 rounded-[18px] border-2 border-secondary-container shadow-xs">
+            <button class="btn-time-filter px-3 sm:px-4 py-1.5 rounded-[12px] bg-primary text-white font-extrabold text-[12px] cursor-pointer" data-range="today">วันนี้</button>
+            <button class="btn-time-filter px-3 sm:px-4 py-1.5 rounded-[12px] text-on-surface-variant font-extrabold text-[12px] cursor-pointer hover:bg-secondary-container/50" data-range="week">7 วันล่าสุด</button>
+            <button class="btn-time-filter px-3 sm:px-4 py-1.5 rounded-[12px] text-on-surface-variant font-extrabold text-[12px] cursor-pointer hover:bg-secondary-container/50" data-range="month">เดือนนี้</button>
+            <button class="btn-time-filter px-3 sm:px-4 py-1.5 rounded-[12px] text-on-surface-variant font-extrabold text-[12px] cursor-pointer hover:bg-secondary-container/50" data-range="all">ทั้งหมด</button>
+          </div>
+        </div>
+
+        <!-- 4 Impact Metric Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div class="bg-white rounded-[24px] p-4 admin-card flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-[16px] bg-[#E3F2FD] text-[#1976D2] flex items-center justify-center shrink-0">
+              <span class="material-symbols-rounded text-2xl">water_bottle</span>
+            </div>
+            <div>
+              <span class="text-[11px] font-bold text-on-surface-variant block">ขวดพลาสติกใส (PET)</span>
+              <strong class="font-display text-[20px] sm:text-[24px] font-black text-[#1976D2]" id="metric-pet-count">0 ชิ้น</strong>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-[24px] p-4 admin-card flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-[16px] bg-[#FFF9C4] text-[#F57F17] flex items-center justify-center shrink-0">
+              <span class="material-symbols-rounded text-2xl">inventory_2</span>
+            </div>
+            <div>
+              <span class="text-[11px] font-bold text-on-surface-variant block">กระป๋อง (CAN)</span>
+              <strong class="font-display text-[20px] sm:text-[24px] font-black text-[#F57F17]" id="metric-can-count">0 ชิ้น</strong>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-[24px] p-4 admin-card flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-[16px] bg-[#E8F5E9] text-primary flex items-center justify-center shrink-0">
+              <span class="material-symbols-rounded text-2xl">stars</span>
+            </div>
+            <div>
+              <span class="text-[11px] font-bold text-on-surface-variant block">แต้มแจกสะสม</span>
+              <strong class="font-display text-[20px] sm:text-[24px] font-black text-primary" id="metric-points-count">0 Pts</strong>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-[24px] p-4 admin-card flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-[16px] bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+              <span class="material-symbols-rounded text-2xl">eco</span>
+            </div>
+            <div>
+              <span class="text-[11px] font-bold text-on-surface-variant block">ลดก๊าซ CO2 สะสม</span>
+              <strong class="font-display text-[20px] sm:text-[24px] font-black text-emerald-700" id="metric-co2-saved">0.00 kg</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2-Column Visual Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <!-- Main Trend Bar Chart (2 Cols) -->
+          <div class="lg:col-span-2 bg-white rounded-[28px] p-5 sm:p-6 admin-card flex flex-col gap-4">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="font-display text-[17px] sm:text-[18px] font-black text-on-surface flex items-center gap-2">
+                  <span class="material-symbols-rounded text-primary">bar_chart</span>
+                  แนวโน้มการทิ้งขวดรีไซเคิล (Daily Trend)
+                </h3>
+                <p class="text-[11px] sm:text-[12px] text-on-surface-variant font-bold">จำนวนขวด PET และกระป๋อง CAN ที่คัดแยกในแต่ละวัน</p>
+              </div>
+            </div>
+            <div class="w-full h-[260px] sm:h-[300px] relative">
+              <canvas id="chart-daily-trend"></canvas>
+            </div>
+          </div>
+
+          <!-- Donut Chart (1 Col) -->
+          <div class="bg-white rounded-[28px] p-5 sm:p-6 admin-card flex flex-col justify-between gap-4">
+            <div>
+              <h3 class="font-display text-[17px] sm:text-[18px] font-black text-on-surface flex items-center gap-2">
+                <span class="material-symbols-rounded text-primary">pie_chart</span>
+                สัดส่วนประเภทขยะ (Ratio)
+              </h3>
+              <p class="text-[11px] sm:text-[12px] text-on-surface-variant font-bold">สัดส่วนระหว่างขวดพลาสติก PET และกระป๋อง</p>
+            </div>
+            <div class="w-full h-[220px] sm:h-[240px] relative flex items-center justify-center">
+              <canvas id="chart-ratio-donut"></canvas>
+            </div>
+            <div class="flex justify-around pt-2 border-t border-secondary-container/40 text-[12px] font-bold text-center">
+              <div><span class="text-[#1976D2] font-black">🧴 ขวด PET:</span> <span id="donut-pct-pet">0%</span></div>
+              <div><span class="text-[#F57F17] font-black">🥫 กระป๋อง:</span> <span id="donut-pct-can">0%</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Classroom Leaderboard & Realtime Activity Stream -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <!-- Top 5 Rooms Leaderboard -->
+          <div class="bg-white rounded-[28px] p-5 sm:p-6 admin-card flex flex-col gap-3.5">
+            <h3 class="font-display text-[17px] font-black text-on-surface flex items-center gap-2">
+              <span class="material-symbols-rounded text-[#F57F17]">military_tech</span>
+              อันดับห้องเรียนรักษ์โลกสูงสุด (Top 5 Classrooms)
+            </h3>
+            <div class="flex flex-col gap-2" id="leaderboard-classroom-list">
+              <!-- Dynamic Leaderboard Injected Here -->
+            </div>
+          </div>
+
+          <!-- Environmental Impact Summary Card -->
+          <div class="bg-gradient-to-br from-emerald-800 to-primary rounded-[28px] p-6 text-white flex flex-col justify-between gap-4 shadow-lg relative overflow-hidden">
+            <div class="absolute -right-6 -bottom-6 w-36 h-36 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
+            <div>
+              <span class="bg-white/20 text-white text-[11px] font-black px-3 py-1 rounded-full uppercase tracking-wider">🌿 ผลลัพธ์สิ่งแวดล้อม</span>
+              <h3 class="font-display text-[22px] font-black mt-2">โรงเรียนสรรพวิทยาคม รักษ์โลกยั่งยืน</h3>
+              <p class="text-[13px] text-white/90 font-bold mt-1 leading-relaxed">
+                การคัดแยกขวด PET และกระป๋อง CAN ของนักเรียนทั้ง 2,906 คน ช่วยลดขยะพลาสติก ลดการปล่อยก๊าซเรือนกระจก และสร้างจิตสำนึกที่ดีให้กับเยาวชนอำเภอแม่สอด
+              </p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 bg-white/10 p-3.5 rounded-[20px] backdrop-blur-xs border border-white/20">
+              <div>
+                <span class="text-[11px] font-bold text-white/80 block">เทียบเท่าการปลูกต้นไม้</span>
+                <strong class="font-display text-[20px] font-black text-white" id="stat-tree-equivalent">0 ต้น 🌳</strong>
+              </div>
+              <div>
+                <span class="text-[11px] font-bold text-white/80 block">พลังงานที่ประหยัดได้</span>
+                <strong class="font-display text-[20px] font-black text-white" id="stat-energy-saved">0 kWh ⚡</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ===================================================================
+           VIEW 1: จัดการของรางวัล (Reward Store Inventory & CRUD)
+           =================================================================== -->
+      <section class="admin-tab-pane hidden flex flex-col gap-6" id="tab-manage-rewards">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div>
+            <h2 class="font-display text-[20px] sm:text-[22px] font-black text-on-surface">คลังของรางวัลสำหรับนักเรียน 🎁</h2>
+            <p class="text-[13px] text-on-surface-variant font-bold">เพิ่ม แก้ไขแต้ม เติมสต็อก หรือเปิด/ปิดการแสดงผลของรางวัลในร้านค้า</p>
+          </div>
+          <button class="bg-primary text-on-primary font-bold px-5 py-3 rounded-[16px] btn-squishy hover:bg-primary-container border-b-4 border-on-primary-container flex items-center gap-2 shadow-sm cursor-pointer" id="btn-open-add-reward-modal">
+            <span class="material-symbols-rounded text-xl">add_circle</span>
+            <span>+ เพิ่มของรางวัลใหม่</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="admin-rewards-grid">
+          <!-- Injected via JavaScript -->
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           VIEW 2: ปรับแก้คะแนนนักเรียน (Student Points & Accounts)
+           =================================================================== -->
+      <section class="admin-tab-pane hidden flex flex-col gap-6" id="tab-manage-students">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div>
+            <h2 class="font-display text-[20px] sm:text-[22px] font-black text-on-surface">รายชื่อและคะแนนนักเรียนทุกคน (2,906 คน) 👥</h2>
+            <p class="text-[13px] text-on-surface-variant font-bold">ค้นหา กรองตามชั้น/ห้อง และปรับแก้แต้มหรือเบอร์โทรศัพท์ของนักเรียนได้ทันที</p>
+          </div>
+        </div>
+
+        <!-- Search & Filter Bar -->
+        <div class="bg-white rounded-[28px] p-5 admin-card flex flex-col md:flex-row gap-3 items-center justify-between">
+          <div class="flex-1 w-full flex gap-2">
+            <input type="text" id="adm-student-search-input" placeholder="พิมพ์รหัส 5 หลัก หรือ ชื่อ-นามสกุล..." maxlength="30" class="flex-1 bg-surface-container-low border-2 border-secondary-container rounded-[16px] px-4 py-2.5 text-[14px] font-bold text-on-surface focus:outline-none focus:border-primary">
+            <button class="bg-primary text-on-primary font-bold px-5 py-2.5 rounded-[16px] btn-squishy hover:bg-primary-container border-b-4 border-on-primary-container cursor-pointer flex items-center gap-1 text-[13px]" id="btn-adm-search-student-page">
+              <span class="material-symbols-rounded text-lg">search</span>
+              <span>ค้นหา</span>
+            </button>
+          </div>
+
+          <!-- Room Filter Dropdown -->
+          <div class="w-full md:w-auto flex items-center gap-2">
+            <span class="text-[12px] font-extrabold text-on-surface-variant whitespace-nowrap">กรองตามห้อง:</span>
+            <select id="adm-filter-room-select" class="bg-surface-container-low border-2 border-secondary-container rounded-[14px] px-3.5 py-2.5 font-bold text-[13px] text-on-surface focus:outline-none focus:border-primary w-full md:w-auto">
+              <option value="ALL">✨ ทุกระดับชั้น (2,906 คน)</option>
+              <optgroup label="มัธยมศึกษาปีที่ 1">
+                <option value="ม.1/1">ม.1/1</option><option value="ม.1/2">ม.1/2</option><option value="ม.1/3">ม.1/3</option><option value="ม.1/4">ม.1/4</option><option value="ม.1/5">ม.1/5</option><option value="ม.1/6">ม.1/6</option><option value="ม.1/7">ม.1/7</option><option value="ม.1/8">ม.1/8</option><option value="ม.1/9">ม.1/9</option><option value="ม.1/10">ม.1/10</option>
+              </optgroup>
+              <optgroup label="มัธยมศึกษาปีที่ 2">
+                <option value="ม.2/1">ม.2/1</option><option value="ม.2/2">ม.2/2</option><option value="ม.2/3">ม.2/3</option><option value="ม.2/4">ม.2/4</option><option value="ม.2/5">ม.2/5</option><option value="ม.2/6">ม.2/6</option><option value="ม.2/7">ม.2/7</option><option value="ม.2/8">ม.2/8</option><option value="ม.2/9">ม.2/9</option><option value="ม.2/10">ม.2/10</option>
+              </optgroup>
+              <optgroup label="มัธยมศึกษาปีที่ 3">
+                <option value="ม.3/1">ม.3/1</option><option value="ม.3/2">ม.3/2</option><option value="ม.3/3">ม.3/3</option><option value="ม.3/4">ม.3/4</option><option value="ม.3/5">ม.3/5</option><option value="ม.3/6">ม.3/6</option><option value="ม.3/7">ม.3/7</option><option value="ม.3/8">ม.3/8</option><option value="ม.3/9">ม.3/9</option><option value="ม.3/10">ม.3/10</option>
+              </optgroup>
+              <optgroup label="มัธยมศึกษาตอนปลาย (ม.4 - ม.6)">
+                <option value="ม.4">ระดับชั้น ม.4 ทั้งหมด</option>
+                <option value="ม.5">ระดับชั้น ม.5 ทั้งหมด</option>
+                <option value="ม.6">ระดับชั้น ม.6 ทั้งหมด</option>
+              </optgroup>
+            </select>
+          </div>
+        </div>
+
+        <!-- All Students Table Card -->
+        <div class="bg-white rounded-[28px] p-5 sm:p-6 admin-card flex flex-col gap-4">
+          <div class="flex justify-between items-center pb-2 border-b border-secondary-container/50">
+            <div>
+              <h3 class="font-display text-[16px] font-black text-on-surface flex items-center gap-1.5">
+                <span class="material-symbols-rounded text-primary">group</span>
+                ตารางรายชื่อนักเรียน
+              </h3>
+              <span class="text-[11px] text-on-surface-variant font-bold" id="adm-students-matched-count">แสดง 1 - 20 จากทั้งหมด 2,906 คน</span>
+            </div>
+            <button class="text-[12px] font-bold text-primary hover:underline cursor-pointer" id="btn-adm-refresh-students">รีเฟรช 🔄</button>
+          </div>
+
+          <!-- Responsive Table -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-[13px] border-collapse">
+              <thead>
+                <tr class="border-b-2 border-secondary-container text-on-surface-variant font-extrabold">
+                  <th class="py-3 px-3">รหัส</th>
+                  <th class="py-3 px-3">ชื่อ - นามสกุล</th>
+                  <th class="py-3 px-3">ชั้น / ห้อง (เลขที่)</th>
+                  <th class="py-3 px-3">เบอร์โทรศัพท์</th>
+                  <th class="py-3 px-3">แต้มสะสม</th>
+                  <th class="py-3 px-3 text-right">ปรับแต้มด่วน / แก้ไข</th>
+                </tr>
+              </thead>
+              <tbody id="admin-students-table-body">
+                <!-- Dynamic Students Rows Injected Here -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination Controls -->
+          <div class="flex justify-between items-center pt-3 border-t border-secondary-container/50 text-[12px]">
+            <button class="px-4 py-2 rounded-[12px] bg-surface-container hover:bg-secondary-container font-bold text-on-surface-variant cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed" id="btn-student-prev-page">
+              ◀ ก่อนหน้า
+            </button>
+            <span class="font-extrabold text-on-surface" id="student-pagination-text">หน้า 1 / 146</span>
+            <button class="px-4 py-2 rounded-[12px] bg-surface-container hover:bg-secondary-container font-bold text-on-surface-variant cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed" id="btn-student-next-page">
+              ถัดไป ▶
+            </button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ===================================================================
+           VIEW 3: จัดการคูปองรางวัล (Coupon Manager & Issue)
+           =================================================================== -->
+      <section class="admin-tab-pane hidden flex flex-col gap-6" id="tab-manage-coupons">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div>
+            <h2 class="font-display text-[20px] sm:text-[22px] font-black text-on-surface">จัดการคูปองของรางวัล 🎟️</h2>
+            <p class="text-[13px] text-on-surface-variant font-bold">ออกตั๋วรางวัลพิเศษให้นักเรียน, ตรวจสอบรายการคูปอง และลบคูปองที่ไม่ถูกต้อง</p>
+          </div>
+          <button class="bg-primary text-on-primary font-bold px-5 py-3 rounded-[16px] btn-squishy hover:bg-primary-container border-b-4 border-on-primary-container flex items-center gap-2 shadow-sm cursor-pointer" id="btn-open-issue-coupon-modal">
+            <span class="material-symbols-rounded text-xl">add_card</span>
+            <span>+ ออกคูปองให้นักเรียน</span>
+          </button>
+        </div>
+
+        <div class="bg-white rounded-[28px] p-5 admin-card flex flex-col gap-4">
+          <div class="flex justify-between items-center">
+            <div class="flex gap-2">
+              <button class="adm-cpn-filter active px-4 py-1.5 rounded-full bg-primary text-white font-extrabold text-[12px] cursor-pointer" data-cpn-filter="ALL">ทั้งหมด</button>
+              <button class="adm-cpn-filter px-4 py-1.5 rounded-full bg-surface-container-low text-on-surface-variant font-extrabold text-[12px] cursor-pointer hover:bg-secondary-container" data-cpn-filter="ACTIVE">พร้อมใช้งาน (ACTIVE)</button>
+              <button class="adm-cpn-filter px-4 py-1.5 rounded-full bg-surface-container-low text-on-surface-variant font-extrabold text-[12px] cursor-pointer hover:bg-secondary-container" data-cpn-filter="REDEEMED">รับของแล้ว (REDEEMED)</button>
+            </div>
+            <button class="text-[12px] font-bold text-primary hover:underline cursor-pointer" id="btn-refresh-admin-coupons">รีเฟรช 🔄</button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-[13px] border-collapse">
+              <thead>
+                <tr class="border-b-2 border-secondary-container text-on-surface-variant font-extrabold">
+                  <th class="py-3 px-3">รหัสคูปอง</th>
+                  <th class="py-3 px-3">ของรางวัล</th>
+                  <th class="py-3 px-3">นักเรียน</th>
+                  <th class="py-3 px-3">สถานะ</th>
+                  <th class="py-3 px-3">วันที่สร้าง</th>
+                  <th class="py-3 px-3 text-right">การจัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="admin-coupons-table-body">
+                <!-- Injected via JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+  </div>
+
+  <!-- Modal 1: Add/Edit Reward -->
+  <div class="fixed inset-0 z-50 hidden items-center justify-center p-4" id="modal-reward-form">
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm cursor-pointer" id="btn-close-reward-modal-backdrop"></div>
+    <div class="relative bg-white rounded-[32px] shadow-2xl p-6 sm:p-8 max-w-lg w-full border-4 border-primary z-10 flex flex-col gap-4 max-h-[92vh] overflow-y-auto">
+      <div class="flex justify-between items-center pb-2 border-b border-secondary-container">
+        <h3 class="font-display text-[20px] font-black text-on-surface" id="modal-reward-form-title">+ เพิ่มของรางวัลใหม่</h3>
+        <button class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center hover:bg-surface-variant cursor-pointer" id="btn-close-reward-modal">
+          <span class="material-symbols-rounded text-lg">close</span>
+        </button>
+      </div>
+
+      <input type="hidden" id="form-reward-id" value="">
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[12px] font-bold text-on-surface">ชื่อของรางวัล <span class="text-error">*</span></label>
+        <input type="text" id="form-reward-title" placeholder="เช่น กระบอกน้ำสแตนเลส 500ml" class="w-full bg-surface-container-low border-2 border-secondary-container rounded-[14px] px-3.5 py-2.5 font-bold text-on-surface focus:outline-none focus:border-primary">
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div class="flex flex-col gap-1.5">
+          <label class="text-[12px] font-bold text-on-surface">แต้มที่ใช้แลก (Pts) <span class="text-error">*</span></label>
+          <input type="number" id="form-reward-points" placeholder="100" class="w-full bg-surface-container-low border-2 border-secondary-container rounded-[14px] px-3.5 py-2.5 font-bold text-on-surface focus:outline-none focus:border-primary">
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label class="text-[12px] font-bold text-on-surface">จำนวนสต็อก <span class="text-error">*</span></label>
+          <input type="number" id="form-reward-stock" placeholder="25" class="w-full bg-surface-container-low border-2 border-secondary-container rounded-[14px] px-3.5 py-2.5 font-bold text-on-surface focus:outline-none focus:border-primary">
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[12px] font-bold text-on-surface">หมวดหมู่ของรางวัล</label>
+        <select id="form-reward-category" class="w-full bg-surface-container-low border-2 border-secondary-container rounded-[14px] px-3.5 py-2.5 font-bold text-on-surface focus:outline-none focus:border-primary">
+          <option value="stationery">✏️ เครื่องเขียน</option>
+          <option value="character">⭐ คะแนนคุณลักษณะ</option>
+          <option value="toy">🧸 ของเล่น</option>
+        </select>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[12px] font-bold text-on-surface">ลิงก์รูปภาพ (Image URL)</label>
+        <input type="url" id="form-reward-image" placeholder="https://..." class="w-full bg-surface-container-low border-2 border-secondary-container rounded-[14px] px-3.5 py-2.5 font-bold text-on-surface focus:outline-none focus:border-primary">
+      </div>
+
+      <div class="flex gap-3 pt-2">
+        <button class="flex-1 bg-surface-container text-on-surface-variant font-bold py-3 rounded-[16px] cursor-pointer" id="btn-cancel-reward-modal">
+          ยกเลิก
+        </button>
+        <button class="flex-1 bg-primary text-on-primary font-bold py-3 rounded-[16px] btn-squishy hover:bg-primary-container border-b-4 border-on-primary-container cursor-pointer" id="btn-save-reward">
+          บันทึกของรางวัล 💾
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Issue Coupon -->
+  <div class="fixed inset-0 z-50 hidden items-center justify-center p-4" id="modal-issue-coupon">
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm cursor-pointer" id="btn-close-issue-modal-backdrop"></div>
+    <div class="relative bg-white rounded-[32px] shadow-2xl p-6 sm:p-8 max-w-md w-full border-4 border-primary z-10 flex flex-col gap-4">
+      <div class="flex justify-between items-center pb-2 border-b border-secondary-container">
+        <h3 class="font-display text-[20px] font-black text-on-surface">+ ออกคูปองรางวัลพิเศษ</h3>
+        <button class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center hover:bg-surface-variant cursor-pointer" id="btn-close-issue-modal">
+          <span class="material-symbols-rounded text-lg">close</span>
+        </button>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[12px] font-bold text-on-surface">รหัสนักเรียน (5 หลัก) <span class="text-error">*</span></label>
+        <input type="text" id="issue-student-id" placeholder="34889" maxlength="5" class="w-full bg-surface-container-low border-2 border-secondary-container rounded-[14px] px-3.5 py-2.5 font-bold text-on-surface focus:outline-none focus:border-primary">
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[12px] font-bold text-on-surface">เลือกของรางวัล <span class="text-error">*</span></label>
+        <select id="issue-reward-select" class="w-full bg-surface-container-low border-2 border-secondary-container rounded-[14px] px-3.5 py-2.5 font-bold text-on-surface focus:outline-none focus:border-primary">
+          <!-- Dynamic Reward Options Injected via JS -->
+        </select>
+      </div>
+
+      <div class="flex gap-3 pt-2">
+        <button class="flex-1 bg-surface-container text-on-surface-variant font-bold py-3 rounded-[16px] cursor-pointer" id="btn-cancel-issue-modal">
+          ยกเลิก
+        </button>
+        <button class="flex-1 bg-primary text-on-primary font-bold py-3 rounded-[16px] btn-squishy hover:bg-primary-container border-b-4 border-on-primary-container cursor-pointer" id="btn-confirm-issue-coupon">
+          ออกตั๋วคูปองทันที 🎟️
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Edit Student Points & Info Modal -->
+  <div class="fixed inset-0 z-50 hidden items-center justify-center p-4" id="modal-edit-student">
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm cursor-pointer" id="btn-close-edit-student-backdrop"></div>
+    <div class="relative bg-white rounded-[32px] shadow-2xl p-6 sm:p-8 max-w-lg w-full border-4 border-primary z-10 flex flex-col gap-4 max-h-[92vh] overflow-y-auto">
+      
+      <div class="flex justify-between items-center pb-2 border-b border-secondary-container">
+        <h3 class="font-display text-[20px] font-black text-on-surface">✏️ จัดการข้อมูล & แต้มสะสม</h3>
+        <button class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center hover:bg-surface-variant cursor-pointer" id="btn-close-edit-student-modal">
+          <span class="material-symbols-rounded text-lg">close</span>
+        </button>
+      </div>
+
+      <!-- Student Profile Header Card -->
+      <div class="bg-surface-container-low p-4 rounded-[22px] border border-secondary-container flex items-center justify-between">
+        <div>
+          <h4 class="font-display text-[17px] font-black text-on-surface" id="m-edit-std-name">เด็กชายชาญนนท์</h4>
+          <p class="text-[12px] text-primary font-bold" id="m-edit-std-meta">รหัส: 34889 | ชั้น ม.1/1 (เลขที่ 1)</p>
+        </div>
+        <div class="text-right">
+          <span class="text-[10px] font-bold text-on-surface-variant block">แต้มปัจจุบัน</span>
+          <strong class="font-display text-[20px] font-black text-primary" id="m-edit-std-points">1,250 Pts</strong>
+        </div>
+      </div>
+
+      <!-- Quick Delta Adjust Buttons -->
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[12px] font-extrabold text-on-surface-variant">⚡ ปรับแต้มด่วน (+ / -):</label>
+        <div class="grid grid-cols-6 gap-1.5">
+          <button class="btn-m-quick-pt bg-primary-container/20 text-primary hover:bg-primary hover:text-white font-black py-2 rounded-[10px] border border-primary-container text-[11px] cursor-pointer" data-delta="50">+50</button>
+          <button class="btn-m-quick-pt bg-primary-container/20 text-primary hover:bg-primary hover:text-white font-black py-2 rounded-[10px] border border-primary-container text-[11px] cursor-pointer" data-delta="100">+100</button>
+          <button class="btn-m-quick-pt bg-primary-container/20 text-primary hover:bg-primary hover:text-white font-black py-2 rounded-[10px] border border-primary-container text-[11px] cursor-pointer" data-delta="500">+500</button>
+          <button class="btn-m-quick-pt bg-red-50 text-red-700 hover:bg-red-600 hover:text-white font-black py-2 rounded-[10px] border border-red-300 text-[11px] cursor-pointer" data-delta="-50">-50</button>
+          <button class="btn-m-quick-pt bg-red-50 text-red-700 hover:bg-red-600 hover:text-white font-black py-2 rounded-[10px] border border-red-300 text-[11px] cursor-pointer" data-delta="-100">-100</button>
+          <button class="btn-m-quick-pt bg-red-50 text-red-700 hover:bg-red-600 hover:text-white font-black py-2 rounded-[10px] border border-red-300 text-[11px] cursor-pointer" data-delta="-500">-500</button>
+        </div>
+      </div>
+
+      <!-- Exact Points Input -->
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[12px] font-extrabold text-on-surface-variant">ระบุจำนวนแต้มสะสมใหม่:</label>
+        <div class="flex gap-2">
+          <input type="number" id="m-edit-custom-points" class="flex-1 bg-surface-container-low border-2 border-secondary-container rounded-[14px] px-3.5 py-2 font-bold text-on-surface">
+          <button class="bg-red-600 text-white font-bold px-4 py-2 rounded-[14px] btn-squishy hover:bg-red-700 cursor-pointer text-[12px]" id="btn-m-save-points">
+            บันทึกแต้ม 💾
+          </button>
+        </div>
+      </div>
+
+      <!-- Phone Number Input -->
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[12px] font-extrabold text-on-surface-variant">แก้ไขเบอร์โทรศัพท์ (10 หลัก):</label>
+        <div class="flex gap-2">
+          <input type="tel" id="m-edit-phone" maxlength="10" placeholder="08xxxxxxxx" class="flex-1 bg-surface-container-low border-2 border-secondary-container rounded-[14px] px-3.5 py-2 font-bold text-on-surface">
+          <button class="bg-primary text-on-primary font-bold px-4 py-2 rounded-[14px] btn-squishy hover:bg-primary-container cursor-pointer text-[12px]" id="btn-m-save-phone">
+            บันทึกเบอร์ 📱
+          </button>
+        </div>
+      </div>
+
+      <div class="pt-2">
+        <button class="w-full bg-surface-container text-on-surface-variant font-bold py-3 rounded-[16px] cursor-pointer" id="btn-m-close-editor">
+          ปิดหน้าต่าง
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>

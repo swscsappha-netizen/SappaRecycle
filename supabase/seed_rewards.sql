@@ -24,29 +24,29 @@ INSERT INTO public.rewards (reward_id, title, description, points_required, stoc
 ),
 (
     '00000000-0000-0000-0000-000000000003',
-    'คูปองอาหารสหกรณ์โรงเรียน 20 บาท',
-    'ใช้แลกซื้ออาหารและเครื่องดื่มที่สหกรณ์โรงเรียนสรรพวิทยาคมได้ทันที',
+    'ใบเพิ่มคะแนนคุณลักษณะ +5 คะแนน',
+    'ใบรับรองแลกคะแนนคุณลักษณะอันพึงประสงค์ สำหรับยื่นให้อาจารย์ประจำชั้น',
     100,
     50,
-    'voucher',
+    'character',
     'https://images.unsplash.com/photo-1556742049-0a67c5574f73?w=400&q=80'
 ),
 (
     '00000000-0000-0000-0000-000000000004',
-    'กระบอกน้ำสแตนเลสเก็บอุณหภูมิ 500ml',
-    'กระบอกน้ำสุญญากาศ เก็บความเย็นได้ 12 ชม. สกรีนโลโก้สภานักเรียนสรรพวิทยาคม',
-    250,
-    25,
-    'merchandise',
+    'รูบิคฝึกสมอง / ของเล่นเสริมทักษะ',
+    'รูบิคหมุนลื่น ฝึกทักษะการแก้ปัญหาและความคิดสร้างสรรค์',
+    150,
+    30,
+    'toy',
     'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400&q=80'
 ),
 (
     '00000000-0000-0000-0000-000000000005',
-    'ถุงผ้าแคนวาส พับเก็บได้',
-    'ถุงผ้าลดโลกร้อน ลายการ์ตูนตู้หยอดขวดสรรพวิทยาคม พกพาสะดวก',
-    120,
-    40,
-    'merchandise',
+    'โมเดลตัวต่อรักษ์โลก Eco Blocks',
+    'ชุดบล็อกตัวต่อสร้างสรรค์ ผลิตจากพลาสติกรีไซเคิลคุณภาพสูง',
+    200,
+    20,
+    'toy',
     'https://images.unsplash.com/photo-1544816155-12df9643f363?w=400&q=80'
 )
 ON CONFLICT (reward_id) DO UPDATE 
@@ -54,4 +54,5 @@ SET title = EXCLUDED.title,
     description = EXCLUDED.description,
     points_required = EXCLUDED.points_required,
     stock_quantity = EXCLUDED.stock_quantity,
+    category = EXCLUDED.category,
     image_url = EXCLUDED.image_url;
