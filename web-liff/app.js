@@ -184,7 +184,28 @@
         .eq('student_id', studentId)
         .maybeSingle();
 
+      const confirmBtn = document.getElementById('btn-confirm-line-bind');
+
       if (data && !error) {
+        if (data.line_user_id && currentLineProfile && data.line_user_id !== currentLineProfile.userId) {
+          pendingBindingStudent = null;
+          if (previewName) previewName.innerHTML = `<span class="text-error font-black">⚠️ รหัสนักเรียนนี้ถูกผูกบัญชี LINE ไปแล้ว</span>`;
+          if (previewRoom) previewRoom.innerHTML = `<span class="text-on-surface-variant text-[11px] font-bold">หากมีคนแอบอ้างหรือทำโทรศัพท์หาย กรุณาติดต่อสภานักเรียนเพื่อขอปลดล็อก</span>`;
+          if (previewBox) {
+            previewBox.classList.remove('hidden');
+            previewBox.classList.add('flex');
+          }
+          if (confirmBtn) {
+            confirmBtn.disabled = true;
+            confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
+          }
+          return;
+        }
+
+        if (confirmBtn) {
+          confirmBtn.disabled = false;
+          confirmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
         pendingBindingStudent = data;
         if (previewName) previewName.textContent = `✅ ${data.full_name}`;
         if (previewRoom) previewRoom.textContent = `ชั้น ${data.room} (เลขที่ ${data.no || '-'})`;
@@ -199,6 +220,10 @@
         if (previewBox) {
           previewBox.classList.remove('hidden');
           previewBox.classList.add('flex');
+        }
+        if (confirmBtn) {
+          confirmBtn.disabled = true;
+          confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
         }
       }
     } catch (err) {

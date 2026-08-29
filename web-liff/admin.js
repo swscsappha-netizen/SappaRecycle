@@ -723,8 +723,11 @@
         <tr class="border-b border-secondary-container/40 hover:bg-surface-container-low/50">
           <td class="py-3 px-3 font-display font-black text-primary">${s.student_id}</td>
           <td class="py-3 px-3">
-            <strong class="font-bold text-on-surface block">${s.full_name}</strong>
-            ${isCouncil ? '<span class="text-[10px] font-black text-[#b45309] bg-[#fef3c7] px-1.5 py-0.2 rounded border border-[#fde047]">สภานักเรียน</span>' : ''}
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <strong class="font-bold text-on-surface">${s.full_name}</strong>
+              ${isCouncil ? '<span class="text-[10px] font-black text-[#b45309] bg-[#fef3c7] px-1.5 py-0.2 rounded border border-[#fde047]">สภานักเรียน</span>' : ''}
+              ${s.line_user_id ? '<span class="text-[9px] font-black text-[#06C755] bg-[#E8F8EE] px-1.5 py-0.2 rounded border border-[#86EFAC]">ผูก LINE แล้ว 🔗</span>' : '<span class="text-[9px] font-bold text-on-surface-variant/60 bg-surface-container px-1.5 py-0.2 rounded">ยังไม่ผูก LINE</span>'}
+            </div>
           </td>
           <td class="py-3 px-3 font-bold text-on-surface-variant">ชั้น ${s.room} (เลขที่ ${s.no || '-'})</td>
           <td class="py-3 px-3 text-[12px] font-bold ${s.phone_number ? 'text-on-surface' : 'text-on-surface-variant/60'}">
@@ -818,6 +821,20 @@
     document.getElementById('m-edit-custom-points').value = student.current_points || 0;
     document.getElementById('m-edit-phone').value = student.phone_number || '';
 
+    const lineDot = document.getElementById('m-edit-line-dot');
+    const lineStatus = document.getElementById('m-edit-line-status');
+    const btnUnlink = document.getElementById('btn-m-unlink-line');
+    
+    if (student.line_user_id) {
+      if (lineDot) lineDot.className = 'w-2.5 h-2.5 rounded-full bg-[#06C755]';
+      if (lineStatus) lineStatus.innerHTML = `สถานะ: <span class="text-[#06C755] font-black">ผูกบัญชี LINE แล้ว 🔗</span>`;
+      if (btnUnlink) btnUnlink.style.display = 'flex';
+    } else {
+      if (lineDot) lineDot.className = 'w-2.5 h-2.5 rounded-full bg-surface-variant';
+      if (lineStatus) lineStatus.innerHTML = `สถานะ: <span class="text-on-surface-variant/70 font-bold">ยังไม่ได้ผูกบัญชี LINE</span>`;
+      if (btnUnlink) btnUnlink.style.display = 'none';
+    }
+
     const modal = document.getElementById('modal-edit-student');
     if (modal) {
       modal.classList.remove('hidden');
@@ -832,6 +849,27 @@
       modal.classList.remove('flex');
     }
     activeEditingStudent = null;
+  }
+
+  async function unlinkStudentLineAccount() {
+    if (!activeEditingStudent || !supabaseClient) return;
+    const confirmUnlink = confirm(`⚠️ ต้องการปลดล็อกการผูกบัญชี LINE ของ "${activeEditingStudent.full_name}" (รหัส ${activeEditingStudent.student_id}) ใช่หรือไม่?\n\nเมื่อปลดล็อกแล้ว นักเรียนจะสามารถนำบัญชี LINE มาผูกใหม่ได้ทันที`);
+    if (!confirmUnlink) return;
+
+    try {
+      const { error } = await supabaseClient
+        .from('students')
+        .update({ line_user_id: null })
+        .eq('student_id', activeEditingStudent.student_id);
+
+      if (error) throw error;
+      activeEditingStudent.line_user_id = null;
+      renderStudentsTable();
+      openStudentEditorModal(activeEditingStudent.student_id);
+      alert(`✅ ปลดล็อกบัญชี LINE ให้นักเรียน "${activeEditingStudent.full_name}" เรียบร้อยแล้ว!`);
+    } catch (e) {
+      alert('เกิดข้อผิดพลาด: ' + e.message);
+    }
   }
 
   async function saveModalCustomPoints() {
@@ -1163,6 +1201,7 @@
     document.getElementById('btn-m-close-editor')?.addEventListener('click', closeStudentEditorModal);
     document.getElementById('btn-m-save-points')?.addEventListener('click', saveModalCustomPoints);
     document.getElementById('btn-m-save-phone')?.addEventListener('click', saveModalPhone);
+    document.getElementById('btn-m-unlink-line')?.addEventListener('click', unlinkStudentLineAccount);
 
     document.querySelectorAll('.btn-m-quick-pt').forEach(btn => {
       btn.addEventListener('click', () => {

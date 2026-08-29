@@ -621,6 +621,23 @@
         </div>
       </div>
 
+      <!-- LINE Account Identity & Unlink Section -->
+      <div class="bg-surface-container-low p-4 rounded-[22px] border border-secondary-container flex flex-col gap-2.5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-surface-variant" id="m-edit-line-dot"></span>
+            <span class="text-[12px] font-extrabold text-on-surface" id="m-edit-line-status">สถานะ: กำลังตรวจสอบ...</span>
+          </div>
+        </div>
+        <div id="m-edit-line-action-box" class="pt-1">
+          <button class="w-full bg-red-50 text-red-700 hover:bg-red-600 hover:text-white font-extrabold py-2.5 rounded-[14px] border border-red-300 transition-colors text-[12px] flex items-center justify-center gap-1.5 cursor-pointer shadow-sm" id="btn-m-unlink-line">
+            <span class="material-symbols-rounded text-base">link_off</span>
+            ปลดล็อก / ยกเลิกการผูกบัญชี LINE (Unlink LINE)
+          </button>
+          <span class="text-[10px] text-on-surface-variant font-bold mt-1 block text-center">* ใช้เมื่อมีคนแอบอ้าง หรือนักเรียนทำโทรศัพท์หาย/เปลี่ยนไลน์</span>
+        </div>
+      </div>
+
       <div class="pt-2">
         <button class="w-full bg-surface-container text-on-surface-variant font-bold py-3 rounded-[16px] cursor-pointer" id="btn-m-close-editor">
           ปิดหน้าต่าง
