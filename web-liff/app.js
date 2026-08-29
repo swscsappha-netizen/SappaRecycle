@@ -14,6 +14,7 @@
   let supabaseClient = null;
   let currentTab = 'tab-home';
   let activeStudent = null;
+  let currentLineProfile = null;
   let qrScannerInstance = null;
   let pendingRedeemReward = null;
   let pendingVerifyCoupon = null;
@@ -202,6 +203,7 @@
   async function confirmLineBinding() {
     const studentIdInput = document.getElementById('line-bind-student-id').value.trim();
     const phoneInput = document.getElementById('line-bind-phone').value.trim();
+    const confirmBtn = document.getElementById('btn-confirm-line-bind');
 
     if (!studentIdInput || studentIdInput.length !== 5) {
       alert('กรุณาระบุรหัสนักเรียน 5 หลักให้ถูกต้อง');
@@ -219,6 +221,11 @@
     if (!currentLineProfile || !supabaseClient) {
       alert('ไม่พบการเชื่อมต่อ LINE Account');
       return;
+    }
+
+    if (confirmBtn) {
+      confirmBtn.innerHTML = 'กำลังผูกบัญชี... ⏳';
+      confirmBtn.disabled = true;
     }
 
     try {
@@ -240,11 +247,14 @@
 
       activeStudent = data || pendingBindingStudent;
 
-      document.getElementById('modal-line-bind').classList.add('hidden');
-      document.getElementById('modal-line-bind').classList.remove('flex');
+      const modal = document.getElementById('modal-line-bind');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
 
-      if (typeof confetti === 'function') {
-        confetti({ particleCount: 80, spread: 70 });
+      if (typeof window.confetti === 'function') {
+        window.confetti({ particleCount: 80, spread: 70 });
       }
 
       alert(`🎉 ผูกบัญชี LINE กับคุณ "${activeStudent.full_name}" สำเร็จเรียบร้อยแล้ว!`);
@@ -252,7 +262,13 @@
       await fetchStudentRecycleLogs();
       renderAll();
     } catch (e) {
-      alert('เกิดข้อผิดพลาดในการผูกบัญชี: ' + e.message);
+      console.error("Binding error:", e);
+      alert('เกิดข้อผิดพลาดในการผูกบัญชี: ' + (e.message || e));
+    } finally {
+      if (confirmBtn) {
+        confirmBtn.innerHTML = 'ยืนยันผูกบัญชี LINE เข้าใช้งาน 🔗';
+        confirmBtn.disabled = false;
+      }
     }
   }
 
@@ -402,6 +418,11 @@
     const rawName = activeStudent.full_name || 'นักเรียน';
     const cleanHeaderName = rawName.replace(/^(เด็กชาย|เด็กหญิง|นาย|นางสาว)/, '').trim();
     document.getElementById('header-user-name').textContent = cleanHeaderName || rawName;
+
+    if (currentLineProfile && currentLineProfile.pictureUrl) {
+      const avatarImg = document.querySelector('#btn-header-profile-avatar img');
+      if (avatarImg) avatarImg.src = currentLineProfile.pictureUrl;
+    }
 
     const isCouncil = activeStudent.is_council_member || activeStudent.student_id === '32650';
     const roleBadgeEl = document.getElementById('header-role-badge');
