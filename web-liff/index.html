@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Smart Recycle - LINE LIFF | โรงเรียนสรรพวิทยาคม</title>
+  <!-- Google Fonts: Inter & Outfit & Prompt -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- QR Code Generator Library -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <!-- HTML5 QR Code Scanner Library -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <!-- LIFF SDK -->
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+  <div class="liff-app" id="liff-app">
+    
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="header-user-info">
+        <div class="user-avatar" id="header-avatar">
+          <i data-lucide="user"></i>
+        </div>
+        <div class="user-text">
+          <h2 id="header-user-name">กำลังโหลดข้อมูล...</h2>
+          <span class="user-role-badge" id="header-role-badge">นักเรียน</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <!-- Switch between Student & Council Scanner view if council member -->
+        <button class="btn-role-switch" id="btn-toggle-scanner-view" style="display: none;">
+          <i data-lucide="scan"></i>
+          <span>สแกนเนอร์สภา</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Tab Contents -->
+    <main class="app-content">
+
+      <!-- TAB 1: Student Dashboard -->
+      <section class="tab-pane active" id="tab-home">
+        <!-- Balance Card -->
+        <div class="balance-card glass-card">
+          <div class="card-top">
+            <div class="school-tag">
+              <i data-lucide="recycle"></i> สรรพวิทยาคม Recycle
+            </div>
+            <span class="student-id-pill" id="dash-student-id">รหัส 34889</span>
+          </div>
+
+          <div class="card-center">
+            <span class="balance-label">แต้มสะสมปัจจุบัน</span>
+            <div class="points-row">
+              <span class="points-val" id="dash-points-balance">0</span>
+              <span class="points-unit">แต้ม</span>
+            </div>
+          </div>
+
+          <div class="card-bottom">
+            <div class="stat-pill">
+              <i data-lucide="cylinder"></i>
+              <span>รีไซเคิลแล้ว <strong id="dash-total-bottles">0</strong> ชิ้น</span>
+            </div>
+            <div class="stat-pill">
+              <i data-lucide="award"></i>
+              <span id="dash-student-room">ชั้น ม.1/1</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Action Grid -->
+        <div class="quick-actions-row">
+          <button class="quick-btn" id="btn-quick-store">
+            <div class="q-icon store-bg"><i data-lucide="gift"></i></div>
+            <span>แลกรางวัล</span>
+          </button>
+          <button class="quick-btn" id="btn-quick-coupons">
+            <div class="q-icon ticket-bg"><i data-lucide="ticket"></i></div>
+            <span>คูปองของฉัน</span>
+          </button>
+          <button class="quick-btn" id="btn-quick-profile">
+            <div class="q-icon profile-bg"><i data-lucide="user-cog"></i></div>
+            <span>ข้อมูลส่วนตัว</span>
+          </button>
+        </div>
+
+        <!-- Recent Recycling Activity -->
+        <div class="section-container">
+          <div class="section-title-row">
+            <h3><i data-lucide="history"></i> ประวัติการหยอดขวดล่าสุด</h3>
+          </div>
+          <div class="history-list" id="recent-history-list">
+            <div class="empty-state">
+              <i data-lucide="inbox"></i>
+              <p>ยังไม่มีประวัติการหยอดขวด</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: Reward Store -->
+      <section class="tab-pane" id="tab-rewards">
+        <div class="section-header">
+          <h2>ร้านค้าแลกรางวัล 🎁</h2>
+          <p>นำแต้มจากการคัดแยกขวดมาแลกรับของรางวัลที่ห้องสภานักเรียน</p>
+        </div>
+
+        <div class="rewards-grid" id="rewards-grid">
+          <!-- Dynamic Rewards injected here -->
+        </div>
+      </section>
+
+      <!-- TAB 3: My Coupons -->
+      <section class="tab-pane" id="tab-coupons">
+        <div class="section-header">
+          <h2>คูปองของฉัน 🎟️</h2>
+          <p>แสดง QR Code ให้กรรมการสภานักเรียนสแกนเพื่อรับของรางวัล (ไม่มีวันหมดอายุ)</p>
+        </div>
+
+        <div class="coupons-tabs">
+          <button class="coupon-subtab active" data-filter="ACTIVE">คูปองพร้อมใช้ (<span id="count-active-coupons">0</span>)</button>
+          <button class="coupon-subtab" data-filter="REDEEMED">ใช้แล้ว (<span id="count-used-coupons">0</span>)</button>
+        </div>
+
+        <div class="coupons-list" id="coupons-list">
+          <!-- Dynamic Coupons injected here -->
+        </div>
+      </section>
+
+      <!-- TAB 4: Profile & Settings (ADR-0001 Phone editor) -->
+      <section class="tab-pane" id="tab-profile">
+        <div class="section-header">
+          <h2>ข้อมูลนักเรียน & บัญชี LINE</h2>
+          <p>ตรวจสอบและอัปเดตเบอร์โทรศัพท์สำหรับรับรางวัล</p>
+        </div>
+
+        <div class="profile-card glass-card">
+          <div class="form-group">
+            <label>ชื่อ-นามสกุล</label>
+            <input type="text" id="prof-name" readonly class="input-readonly">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>เลขประจำตัว (5 หลัก)</label>
+              <input type="text" id="prof-student-id" readonly class="input-readonly">
+            </div>
+            <div class="form-group">
+              <label>ชั้น/ห้อง</label>
+              <input type="text" id="prof-room" readonly class="input-readonly">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>เบอร์โทรศัพท์มือถือ (10 หลัก) <span class="required-tag">*จำเป็นในการแลกของรางวัล</span></label>
+            <div class="phone-input-group">
+              <input type="tel" id="prof-phone" placeholder="08xxxxxxxx" maxlength="10">
+              <button class="btn-save-phone" id="btn-save-phone">
+                <i data-lucide="check"></i> บันทึกเบอร์
+              </button>
+            </div>
+            <small class="field-hint">สามารถแก้ไขเบอร์โทรศัพท์ได้ตลอดเวลาตาม ADR-0001</small>
+          </div>
+
+          <div class="form-group">
+            <label>สถานะบัญชี</label>
+            <div class="account-status-box" id="account-status-box">
+              <i data-lucide="shield-check"></i>
+              <span id="account-status-text">ผูกบัญชี LINE เรียบร้อยแล้ว</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 5: Council Admin Scanner (Role-restricted) -->
+      <section class="tab-pane" id="view-scanner">
+        <div class="scanner-view-container">
+          <div class="scanner-top-bar">
+            <button class="btn-back-student" id="btn-exit-scanner">
+              <i data-lucide="arrow-left"></i> กลับหน้าผู้ใช้ทั่วไป
+            </button>
+            <span class="council-tag"><i data-lucide="shield"></i> กรรมการสภานักเรียน</span>
+          </div>
+
+          <div class="scanner-box">
+            <div id="qr-reader-viewport" class="qr-reader-viewport"></div>
+            <div class="scanner-guide">
+              <p>จัดวาง QR Code คูปองของนักเรียนให้อยู่ในกรอบเพื่อตรวจสอบ</p>
+            </div>
+          </div>
+
+          <!-- Mock Scanner Manual Input for PC Demonstration -->
+          <div class="scanner-manual-box glass-card">
+            <h4>จำลองการสแกนด้วยรหัสคูปอง</h4>
+            <div class="manual-input-row">
+              <input type="text" id="input-manual-coupon-code" placeholder="เช่น CPN-1724948123-ABCD">
+              <button class="btn-verify-manual" id="btn-verify-manual">ตรวจสอบ</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="bottom-nav" id="bottom-nav">
+      <button class="nav-item active" data-tab="tab-home">
+        <i data-lucide="home"></i>
+        <span>หน้าหลัก</span>
+      </button>
+      <button class="nav-item" data-tab="tab-rewards">
+        <i data-lucide="gift"></i>
+        <span>แลกรางวัล</span>
+      </button>
+      <button class="nav-item" data-tab="tab-coupons">
+        <i data-lucide="ticket"></i>
+        <span>คูปอง</span>
+      </button>
+      <button class="nav-item" data-tab="tab-profile">
+        <i data-lucide="user"></i>
+        <span>โปรไฟล์</span>
+      </button>
+    </nav>
+
+    <!-- Modal: Coupon QR Code Presentation -->
+    <div class="modal-overlay" id="modal-qr-presentation" style="display: none;">
+      <div class="modal-card glass-card">
+        <button class="btn-close-modal" id="btn-close-qr-modal"><i data-lucide="x"></i></button>
+        <div class="coupon-qr-header">
+          <h3 id="modal-qr-title">ปากกาเจลรักษ์โลก</h3>
+          <span class="qr-badge active">พร้อมใช้งาน (ไม่มีวันหมดอายุ)</span>
+        </div>
+
+        <div class="qr-canvas-box">
+          <canvas id="qr-canvas"></canvas>
+        </div>
+
+        <div class="qr-code-text-box">
+          <span class="code-label">รหัสคูปอง:</span>
+          <strong id="modal-qr-code-text">CPN-XXXXXXXX</strong>
+        </div>
+
+        <p class="qr-instruction">
+          แสดงหน้านี้ให้กรรมการสภานักเรียนที่ห้องสภาเพื่อรับของรางวัล
+        </p>
+      </div>
+    </div>
+
+    <!-- Modal: Council Handover Verification & Confirmation -->
+    <div class="modal-overlay" id="modal-council-verify" style="display: none;">
+      <div class="modal-card glass-card">
+        <div class="verify-header">
+          <div class="verify-icon-circle"><i data-lucide="package-check"></i></div>
+          <h3>ตรวจสอบคูปองแลกรางวัล</h3>
+        </div>
+
+        <div class="verify-body">
+          <div class="verify-detail-row">
+            <span>นักเรียน:</span>
+            <strong id="verify-student-name">เด็กชายชาญนนท์ -</strong>
+          </div>
+          <div class="verify-detail-row">
+            <span>ชั้น/ห้อง:</span>
+            <strong id="verify-student-room">ม.1/1</strong>
+          </div>
+          <div class="verify-detail-row">
+            <span>ของรางวัล:</span>
+            <strong id="verify-reward-title" class="highlight-green">สมุดบันทึก Green Earth</strong>
+          </div>
+          <div class="verify-detail-row">
+            <span>สถานะปัจจุบัน:</span>
+            <span class="status-pill active" id="verify-status-pill">ACTIVE (ยังไม่ได้รับของ)</span>
+          </div>
+        </div>
+
+        <div class="verify-actions">
+          <button class="btn-verify-cancel" id="btn-verify-cancel">ยกเลิก</button>
+          <button class="btn-verify-confirm" id="btn-verify-confirm">
+            <i data-lucide="check-circle-2"></i> ยืนยันมอบของรางวัล
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Gatekeeper Phone Required (ADR-0001) -->
+    <div class="modal-overlay" id="modal-phone-required" style="display: none;">
+      <div class="modal-card glass-card">
+        <div class="gatekeeper-icon"><i data-lucide="phone-alert"></i></div>
+        <h3>กรุณาบันทึกเบอร์โทรศัพท์</h3>
+        <p class="gatekeeper-desc">
+          ตามมาตรการความปลอดภัย (ADR-0001) คุณต้องระบุเบอร์โทรศัพท์มือถือก่อนกดแลกของรางวัล
+        </p>
+        <div class="form-group" style="width: 100%;">
+          <input type="tel" id="input-gatekeeper-phone" placeholder="08xxxxxxxx" maxlength="10">
+        </div>
+        <div class="verify-actions">
+          <button class="btn-verify-cancel" id="btn-gatekeeper-cancel">ยกเลิก</button>
+          <button class="btn-verify-confirm" id="btn-gatekeeper-save">บันทึกและแลกต่อ</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>

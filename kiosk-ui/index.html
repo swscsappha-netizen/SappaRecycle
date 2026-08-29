@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1024, height=600, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Smart Recycling Kiosk - โรงเรียนสรรพวิทยาคม</title>
+  <!-- Google Fonts: Inter & Outfit & Prompt -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Canvas Confetti for Celebration -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+  <div class="kiosk-container" id="kiosk-app">
+    
+    <!-- Top Bar: School Logo, Clock & Status Badges -->
+    <header class="kiosk-header">
+      <div class="brand-group">
+        <div class="school-logo-badge">
+          <i data-lucide="recycle" class="logo-icon"></i>
+        </div>
+        <div class="brand-text">
+          <h1>โรงเรียนสรรพวิทยาคม</h1>
+          <p>ตู้แยกขวดและกระป๋องอัจฉริยะระบบ AI (Smart Recycling Kiosk)</p>
+        </div>
+      </div>
+      
+      <div class="header-right">
+        <!-- Ultrasonic Bin Level Indicators -->
+        <div class="bin-indicator-group">
+          <div class="bin-pill" id="pet-bin-pill" title="ระดับความจุถังขวด PET">
+            <span class="bin-dot normal" id="pet-bin-dot"></span>
+            <span class="bin-name">ถัง PET</span>
+            <span class="bin-val" id="pet-bin-val">25%</span>
+          </div>
+          <div class="bin-pill" id="can-bin-pill" title="ระดับความจุถังกระป๋อง CAN">
+            <span class="bin-dot normal" id="can-bin-dot"></span>
+            <span class="bin-name">ถังกระป๋อง</span>
+            <span class="bin-val" id="can-bin-val">18%</span>
+          </div>
+        </div>
+
+        <div class="kiosk-clock">
+          <span id="current-time">12:00</span>
+          <span class="clock-ampm" id="current-date">29 ส.ค.</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Top Alert Banner (for Ultrasonic Bin Full Warnings) -->
+    <div class="alert-banner" id="bin-alert-banner" style="display: none;">
+      <i data-lucide="alert-triangle"></i>
+      <span id="bin-alert-msg">แจ้งเตือน: ถังขยะใกล้เต็ม กรุณาติดต่อครู/เจ้าหน้าที่</span>
+    </div>
+
+    <!-- Main Screens Viewport -->
+    <main class="kiosk-main">
+      
+      <!-- SCREEN 1: Welcome Screen (Idle) -->
+      <section class="kiosk-screen active" id="screen-welcome">
+        <div class="welcome-card glass-panel">
+          <div class="eco-badge">
+            <i data-lucide="sparkles"></i> แยกขยะวันนี้ สะสมแต้มแลกของรางวัล
+          </div>
+          <h2 class="welcome-title">เปลี่ยนขวดน้ำ & กระป๋อง<br><span class="gradient-text">ให้เป็นแต้มสะสมรางวัล</span></h2>
+          
+          <div class="points-guide-cards">
+            <div class="guide-card pet-card">
+              <div class="icon-circle pet-icon-bg">
+                <i data-lucide="cylinder"></i>
+              </div>
+              <div class="guide-info">
+                <h3>ขวดพลาสติก PET</h3>
+                <p>รับทันที <strong class="highlight-pts">+10 แต้ม</strong> / ขวด</p>
+              </div>
+            </div>
+
+            <div class="guide-card can-card">
+              <div class="icon-circle can-icon-bg">
+                <i data-lucide="box"></i>
+              </div>
+              <div class="guide-info">
+                <h3>กระป๋องอะลูมิเนียม</h3>
+                <p>รับทันที <strong class="highlight-pts">+20 แต้ม</strong> / ใบ</p>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn-start pulse-button" id="btn-start-flow">
+            <span>แตะที่นี่เพื่อเริ่มต้นใช้งาน</span>
+            <i data-lucide="arrow-right"></i>
+          </button>
+        </div>
+      </section>
+
+      <!-- SCREEN 2: Identification (5-digit Student ID Numpad) -->
+      <section class="kiosk-screen" id="screen-numpad">
+        <div class="auth-layout">
+          <div class="auth-info-card glass-panel">
+            <button class="btn-back" id="btn-back-to-welcome">
+              <i data-lucide="chevron-left"></i> กลับหน้าแรก
+            </button>
+
+            <div class="auth-instruction">
+              <div class="step-badge">ขั้นตอนที่ 1 / 2</div>
+              <h2>กรอกเลขประจำตัว</h2>
+              <p>กดเลขประจำตัวนักเรียน 5 หลักของคุณ</p>
+            </div>
+
+            <!-- PIN Display -->
+            <div class="pin-display-box" id="pin-display-box">
+              <div class="pin-digits" id="pin-display">_ _ _ _ _</div>
+            </div>
+
+            <div class="student-preview-card" id="student-preview" style="display: none;">
+              <div class="avatar-ring">
+                <i data-lucide="user-check"></i>
+              </div>
+              <div class="preview-text">
+                <h4 id="preview-name">ชื่อ นามสกุล</h4>
+                <p id="preview-room">ชั้น ม.1/1 | รหัส <span id="preview-id">34889</span></p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Numpad Keypad -->
+          <div class="numpad-container glass-panel">
+            <div class="numpad-grid">
+              <button class="num-key" data-key="1">1</button>
+              <button class="num-key" data-key="2">2</button>
+              <button class="num-key" data-key="3">3</button>
+              <button class="num-key" data-key="4">4</button>
+              <button class="num-key" data-key="5">5</button>
+              <button class="num-key" data-key="6">6</button>
+              <button class="num-key" data-key="7">7</button>
+              <button class="num-key" data-key="8">8</button>
+              <button class="num-key" data-key="9">9</button>
+              <button class="num-key action-key clear-key" id="btn-num-clear">
+                <i data-lucide="rotate-ccw"></i> ล้าง
+              </button>
+              <button class="num-key" data-key="0">0</button>
+              <button class="num-key action-key backspace-key" id="btn-num-backspace">
+                <i data-lucide="delete"></i> ลบ
+              </button>
+            </div>
+            
+            <button class="btn-confirm-id" id="btn-submit-id" disabled>
+              <span>ถัดไป</span>
+              <i data-lucide="arrow-right"></i>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCREEN 3: Batch Deposit & Live AI Camera Screen -->
+      <section class="kiosk-screen" id="screen-deposit">
+        <div class="deposit-layout">
+          
+          <!-- Left: Live AI Camera Feed & Status -->
+          <div class="camera-panel glass-panel">
+            <div class="camera-header">
+              <div class="live-indicator">
+                <span class="live-dot"></span> LIVE AI VISION
+              </div>
+              <div class="sensor-status-badge" id="sensor-status">
+                <i data-lucide="activity"></i> พร้อมรับขวด
+              </div>
+            </div>
+
+            <div class="camera-viewport" id="camera-viewport">
+              <div class="mock-camera-bg" id="camera-feed-box">
+                <div class="crosshair-target"></div>
+                <div class="ai-bounding-box" id="ai-box" style="display: none;">
+                  <span class="ai-tag" id="ai-tag">PET Plastic Bottle (98.4%)</span>
+                </div>
+                <div class="conveyor-overlay" id="conveyor-overlay">
+                  <span id="conveyor-status-text">สายพานพร้อมทำงาน</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="deposit-tip">
+              <i data-lucide="info"></i>
+              <span>หยอดขวดหรือกระป๋องลงในช่องรับด้านหน้าทีละ 1 ชิ้น</span>
+            </div>
+          </div>
+
+          <!-- Right: Session Counter & Summary -->
+          <div class="session-stats-panel glass-panel">
+            <div class="student-mini-banner">
+              <div class="student-avatar-small">
+                <i data-lucide="user"></i>
+              </div>
+              <div class="student-meta">
+                <h3 id="session-student-name">เด็กชายชาญนนท์</h3>
+                <p id="session-student-info">ม.1/1 (รหัส 34889)</p>
+              </div>
+            </div>
+
+            <div class="stats-counter-group">
+              <div class="stat-counter-card pet-stat">
+                <div class="stat-icon-wrapper">
+                  <i data-lucide="cylinder"></i>
+                </div>
+                <div class="stat-details">
+                  <span class="stat-label">ขวดพลาสติก PET (+10)</span>
+                  <span class="stat-value" id="session-pet-count">0</span>
+                </div>
+              </div>
+
+              <div class="stat-counter-card can-stat">
+                <div class="stat-icon-wrapper">
+                  <i data-lucide="box"></i>
+                </div>
+                <div class="stat-details">
+                  <span class="stat-label">กระป๋อง CAN (+20)</span>
+                  <span class="stat-value" id="session-can-count">0</span>
+                </div>
+              </div>
+
+              <div class="stat-total-points-card">
+                <span class="points-sub">แต้มที่ได้รับรอบนี้</span>
+                <span class="points-big" id="session-points-earned">0 <small>แต้ม</small></span>
+              </div>
+            </div>
+
+            <button class="btn-finish-deposit" id="btn-finish-deposit">
+              <i data-lucide="check-circle-2"></i>
+              <span>เสร็จสิ้นและรับแต้ม</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCREEN 4: Celebration & Thank You Screen -->
+      <section class="kiosk-screen" id="screen-summary">
+        <div class="summary-card glass-panel">
+          <div class="celebrate-icon-box">
+            <i data-lucide="award"></i>
+          </div>
+          <h2 class="summary-title">บันทึกแต้มสำเร็จแล้ว! 🎉</h2>
+          <p class="summary-sub">ขอบคุณที่ร่วมเป็นส่วนหนึ่งในการดูแลสิ่งแวดล้อมกับโรงเรียนสรรพวิทยาคม</p>
+
+          <div class="summary-breakdown-grid">
+            <div class="breakdown-item">
+              <span class="breakdown-label">ขวด PET</span>
+              <span class="breakdown-val" id="summary-pet-count">0 ใบ</span>
+            </div>
+            <div class="breakdown-item">
+              <span class="breakdown-label">กระป๋อง CAN</span>
+              <span class="breakdown-val" id="summary-can-count">0 ใบ</span>
+            </div>
+            <div class="breakdown-item highlight">
+              <span class="breakdown-label">แต้มที่ได้รับ</span>
+              <span class="breakdown-val" id="summary-earned-pts">+0</span>
+            </div>
+            <div class="breakdown-item total">
+              <span class="breakdown-label">แต้มสะสมรวมทั้งหมด</span>
+              <span class="breakdown-val" id="summary-total-pts">0 แต้ม</span>
+            </div>
+          </div>
+
+          <div class="liff-reminder">
+            <i data-lucide="smartphone"></i>
+            <span>เปิด LINE เพื่อเช็คแต้มและแลกของรางวัลที่ห้องสภานักเรียน</span>
+          </div>
+
+          <button class="btn-done" id="btn-done-back">
+            <span>กลับหน้าแรก (<span id="countdown-sec">10</span>s)</span>
+            <i data-lucide="home"></i>
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <!-- ADR-0001 Progressive Phone Number Modal -->
+    <div class="modal-backdrop" id="modal-phone" style="display: none;">
+      <div class="modal-dialog glass-panel">
+        <div class="modal-icon">
+          <i data-lucide="phone-call"></i>
+        </div>
+        <h3>บันทึกเบอร์โทรศัพท์</h3>
+        <p class="modal-sub">
+          ยังไม่พบเบอร์โทรศัพท์ในระบบ บันทึกเบอร์ 10 หลักเพื่อรับสิทธิ์แลกของรางวัลบน LINE
+        </p>
+
+        <div class="phone-input-wrapper">
+          <input type="tel" id="input-phone-modal" placeholder="08xxxxxxxx" maxlength="10" readonly>
+        </div>
+
+        <div class="modal-numpad">
+          <button class="m-key" data-mkey="1">1</button>
+          <button class="m-key" data-mkey="2">2</button>
+          <button class="m-key" data-mkey="3">3</button>
+          <button class="m-key" data-mkey="4">4</button>
+          <button class="m-key" data-mkey="5">5</button>
+          <button class="m-key" data-mkey="6">6</button>
+          <button class="m-key" data-mkey="7">7</button>
+          <button class="m-key" data-mkey="8">8</button>
+          <button class="m-key" data-mkey="9">9</button>
+          <button class="m-key m-clear" id="btn-modal-clear">ล้าง</button>
+          <button class="m-key" data-mkey="0">0</button>
+          <button class="m-key m-del" id="btn-modal-backspace">⌫</button>
+        </div>
+
+        <div class="modal-actions">
+          <!-- Prominent Skip Button per ADR-0001 -->
+          <button class="btn-modal-skip" id="btn-modal-phone-skip">
+            <span>ข้าม (ไว้กรอกทีหลัง)</span>
+          </button>
+          <button class="btn-modal-save" id="btn-modal-phone-save">
+            <span>บันทึกเบอร์โทร</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Floating Hardware Simulator Dock (for PC testing & demonstration) -->
+    <div class="sim-dock collapsed" id="sim-dock">
+      <div class="sim-dock-header" id="sim-dock-toggle">
+        <span class="sim-title"><i data-lucide="cpu"></i> Hardware Simulator</span>
+        <button class="btn-sim-toggle" id="btn-sim-toggle"><i data-lucide="chevron-up"></i></button>
+      </div>
+      <div class="sim-dock-body">
+        <div class="sim-btn-row">
+          <button class="sim-btn pet" id="sim-drop-pet"><i data-lucide="cylinder"></i> จำลองหยอด PET (+10)</button>
+          <button class="sim-btn can" id="sim-drop-can"><i data-lucide="box"></i> จำลองหยอด CAN (+20)</button>
+          <button class="sim-btn reject" id="sim-drop-reject"><i data-lucide="ban"></i> จำลองขยะแปลกปลอม (Reject)</button>
+        </div>
+        <div class="sim-slider-row">
+          <label>ถัง PET: <input type="range" id="sim-pet-bin-slider" min="0" max="100" value="25"></label>
+          <label>ถัง CAN: <input type="range" id="sim-can-bin-slider" min="0" max="100" value="18"></label>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="simulator.js"></script>
+  <script src="app.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>
