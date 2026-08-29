@@ -119,6 +119,7 @@
       if (data && !error) {
         // Existing linked student -> Login immediately!
         activeStudent = data;
+        localStorage.setItem('sapparecycle_student_id', data.student_id);
         await fetchStudentCoupons();
         await fetchStudentRecycleLogs();
         renderAll();
@@ -127,10 +128,15 @@
         openLineBindingModal(currentLineProfile);
       }
     } else {
-      // Standalone Web Mode -> Read student_id from URL or default to 32650
+      // Standalone Web Mode (Outside LINE)
       const urlParams = new URLSearchParams(window.location.search);
-      const targetId = urlParams.get('student_id') || '32650';
-      await loginStudent(targetId);
+      const targetId = urlParams.get('student_id') || localStorage.getItem('sapparecycle_student_id');
+      
+      if (targetId) {
+        await loginStudent(targetId);
+      } else {
+        openWebLoginModal();
+      }
     }
 
     await fetchRewards();
@@ -237,6 +243,8 @@
       if (error) throw error;
 
       activeStudent = data || pendingBindingStudent;
+      localStorage.setItem('sapparecycle_student_id', activeStudent.student_id);
+
       document.getElementById('modal-line-bind').classList.add('hidden');
       document.getElementById('modal-line-bind').classList.remove('flex');
 
@@ -251,6 +259,91 @@
     } catch (e) {
       alert('เกิดข้อผิดพลาดในการผูกบัญชี: ' + e.message);
     }
+  }
+
+  // --------------------------------------------------------------------------
+  // Standalone Web Student Login Modal
+  // --------------------------------------------------------------------------
+  let pendingWebLoginStudent = null;
+
+  function openWebLoginModal() {
+    const modal = document.getElementById('modal-web-login');
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+  }
+
+  function closeWebLoginModal() {
+    const modal = document.getElementById('modal-web-login');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  }
+
+  async function lookupStudentForWebLogin(studentId) {
+    const previewBox = document.getElementById('web-login-preview-box');
+    const previewName = document.getElementById('web-login-preview-name');
+    const previewRoom = document.getElementById('web-login-preview-room');
+
+    if (!studentId || studentId.length !== 5 || !supabaseClient) {
+      if (previewBox) previewBox.classList.add('hidden');
+      pendingWebLoginStudent = null;
+      return;
+    }
+
+    try {
+      const { data, error } = await supabaseClient
+        .from('students')
+        .select('*')
+        .eq('student_id', studentId)
+        .single();
+
+      if (data && !error) {
+        pendingWebLoginStudent = data;
+        if (previewName) previewName.textContent = `✅ ${data.full_name}`;
+        if (previewRoom) previewRoom.textContent = `ชั้น ${data.room} (เลขที่ ${data.no || '-'})`;
+        if (previewBox) {
+          previewBox.classList.remove('hidden');
+          previewBox.classList.add('flex');
+        }
+      } else {
+        pendingWebLoginStudent = null;
+        if (previewName) previewName.textContent = '❌ ไม่พบรหัสนักเรียนนี้ในระบบ';
+        if (previewRoom) previewRoom.textContent = 'กรุณาตรวจสอบรหัส 5 หลักอีกครั้ง';
+        if (previewBox) {
+          previewBox.classList.remove('hidden');
+          previewBox.classList.add('flex');
+        }
+      }
+    } catch (err) {
+      console.warn("Lookup error:", err);
+    }
+  }
+
+  async function confirmWebLogin() {
+    const studentId = document.getElementById('web-login-student-id').value.trim();
+    if (!studentId || studentId.length !== 5) {
+      alert('กรุณาระบุรหัสนักเรียน 5 หลักให้ถูกต้อง');
+      return;
+    }
+
+    if (!pendingWebLoginStudent) {
+      await lookupStudentForWebLogin(studentId);
+      if (!pendingWebLoginStudent) {
+        alert('ไม่พบรหัสนักเรียนนี้ในระบบโรงเรียนสรรพวิทยาคม');
+        return;
+      }
+    }
+
+    activeStudent = pendingWebLoginStudent;
+    localStorage.setItem('sapparecycle_student_id', activeStudent.student_id);
+    closeWebLoginModal();
+
+    await fetchStudentCoupons();
+    await fetchStudentRecycleLogs();
+    renderAll();
   }
 
   // --------------------------------------------------------------------------
@@ -1312,8 +1405,23 @@
         document.getElementById('line-bind-preview-box')?.classList.add('hidden');
       }
     });
-
     document.getElementById('btn-confirm-line-bind')?.addEventListener('click', confirmLineBinding);
+
+    // 12. Web / Standalone Login & Switch Account Events
+    document.getElementById('web-login-student-id')?.addEventListener('input', (e) => {
+      const val = e.target.value.trim();
+      if (val.length === 5) {
+        lookupStudentForWebLogin(val);
+      } else {
+        document.getElementById('web-login-preview-box')?.classList.add('hidden');
+      }
+    });
+    document.getElementById('btn-confirm-web-login')?.addEventListener('click', confirmWebLogin);
+
+    document.getElementById('btn-profile-switch-account')?.addEventListener('click', () => {
+      localStorage.removeItem('sapparecycle_student_id');
+      openWebLoginModal();
+    });
   }
 
   document.addEventListener('DOMContentLoaded', initApp);
