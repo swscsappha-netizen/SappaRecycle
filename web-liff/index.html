@@ -319,14 +319,6 @@
             </a>
           </div>
 
-          <!-- Switch Student Account (For Shared Devices / Web Access) -->
-          <div class="pt-1">
-            <button class="w-full bg-surface-container text-on-surface-variant font-display font-bold py-2.5 sm:py-3 rounded-[16px] sm:rounded-[18px] hover:bg-surface-variant border border-secondary-container flex items-center justify-center gap-1.5 cursor-pointer text-[12px] sm:text-[13px]" id="btn-profile-switch-account">
-              <span class="material-symbols-rounded text-lg">sync_alt</span>
-              สลับบัญชีนักเรียน / เข้าสู่ระบบด้วยรหัสอื่น
-            </button>
-          </div>
-
           <div class="bg-surface-container-low p-3 sm:p-3.5 rounded-[16px] sm:rounded-[20px] border border-secondary-container flex items-center gap-2">
             <span class="material-symbols-rounded text-primary text-lg sm:text-xl" style="font-variation-settings: 'FILL' 1;">verified</span>
             <span class="text-[11px] sm:text-[12px] font-bold text-on-surface-variant">เชื่อมต่อกับระบบคลาวด์ Supabase สำเร็จ</span>
@@ -536,47 +528,6 @@
         <div class="pt-2">
           <button class="w-full bg-primary text-on-primary font-display font-extrabold py-3.5 rounded-[20px] btn-squishy hover:bg-primary-container border-b-4 border-on-primary-container cursor-pointer text-[15px] shadow-lg flex items-center justify-center gap-2" id="btn-confirm-line-bind">
             ยืนยันผูกบัญชี LINE เข้าใช้งาน 🔗
-          </button>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- ===================================================================
-         MODAL: Web / Standalone Student Login (เข้าสู่ระบบด้วยรหัสนักเรียน 5 หลัก)
-         =================================================================== -->
-    <div class="fixed inset-0 z-[120] hidden items-center justify-center p-4" id="modal-web-login">
-      <div class="absolute inset-0 bg-black/60 backdrop-blur-md"></div>
-      <div class="relative bg-white rounded-[32px] shadow-2xl p-6 sm:p-7 max-w-md w-full border-4 border-primary z-10 flex flex-col gap-4 animate-bounce-in max-h-[92vh] overflow-y-auto">
-        
-        <!-- Header -->
-        <div class="flex items-center gap-3 pb-3 border-b border-secondary-container">
-          <div class="w-12 h-12 rounded-full bg-secondary-container text-primary flex items-center justify-center border-2 border-primary-container/40 shrink-0 shadow-sm">
-            <span class="material-symbols-rounded text-2xl" style="font-variation-settings: 'FILL' 1;">recycling</span>
-          </div>
-          <div>
-            <h3 class="font-display text-[18px] font-black text-on-surface leading-tight">เข้าสู่ระบบ SappaRecycle 🌿</h3>
-            <p class="text-[11px] text-on-surface-variant font-bold">โรงเรียนสรรพวิทยาคม</p>
-          </div>
-        </div>
-
-        <div class="flex flex-col gap-3">
-          <div class="flex flex-col gap-1">
-            <label class="text-[12px] font-extrabold text-on-surface">ระบุรหัสนักเรียน (5 หลัก) <span class="text-error">*</span></label>
-            <input type="text" id="web-login-student-id" placeholder="เช่น 32650 หรือ 34889" maxlength="5" class="w-full bg-surface-container-low border-2 border-secondary-container rounded-[16px] px-4 py-3 font-display font-black text-[18px] text-primary focus:outline-none focus:border-primary text-center tracking-widest">
-          </div>
-
-          <!-- Preview Box -->
-          <div class="hidden bg-surface-container-low p-3.5 rounded-[20px] border border-secondary-container flex flex-col gap-1" id="web-login-preview-box">
-            <span class="text-[11px] font-bold text-on-surface-variant">ข้อมูลนักเรียน:</span>
-            <strong class="font-display text-[15px] font-black text-on-surface" id="web-login-preview-name">-</strong>
-            <span class="text-[12px] font-bold text-primary" id="web-login-preview-room">-</span>
-          </div>
-        </div>
-
-        <div class="pt-2">
-          <button class="w-full bg-primary text-on-primary font-display font-extrabold py-3.5 rounded-[20px] btn-squishy hover:bg-primary-container border-b-4 border-on-primary-container cursor-pointer text-[15px] shadow-lg flex items-center justify-center gap-2" id="btn-confirm-web-login">
-            เข้าสู่ระบบ 🚀
           </button>
         </div>
 
