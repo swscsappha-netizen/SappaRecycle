@@ -731,8 +731,13 @@
     document.getElementById('prof-room').textContent = `ชั้น ${activeStudent.room} (เลขที่ ${activeStudent.no || '-'})`;
     document.getElementById('prof-phone').value = activeStudent.phone_number || '';
 
+    if (currentLineProfile && currentLineProfile.pictureUrl) {
+      const profAvatarImg = document.getElementById('prof-avatar-img') || document.querySelector('#tab-profile img');
+      if (profAvatarImg) profAvatarImg.src = currentLineProfile.pictureUrl;
+    }
+
     // Dynamic Role-Based Buttons:
-    // - Council Members (28 students): QR Scanner Access
+    // - Council Members (27 students): QR Scanner Access
     // - Sole Super Admin (32650): Standalone Admin Backoffice Dashboard Access
     const isCouncil = activeStudent.is_council_member === true || activeStudent.student_id === '32650';
     const isSuperAdmin = activeStudent.student_id === '32650';
