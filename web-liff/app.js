@@ -529,12 +529,16 @@
       if (avatarImg) avatarImg.src = currentLineProfile.pictureUrl;
     }
 
-    const isCouncil = activeStudent.student_id === '32650' && activeStudent.is_council_member === true;
+    const isCouncil = activeStudent.is_council_member === true || activeStudent.student_id === '32650';
+    const isSuperAdmin = activeStudent.student_id === '32650';
     const roleBadgeEl = document.getElementById('header-role-badge');
     if (roleBadgeEl) {
-      if (isCouncil) {
-        roleBadgeEl.textContent = '★ สภานักเรียน';
+      if (isSuperAdmin) {
+        roleBadgeEl.textContent = '★ แอดมินสภานักเรียน';
         roleBadgeEl.className = 'text-[10px] sm:text-[11px] font-black text-[#b45309] bg-[#fef3c7] px-2 py-0.5 rounded-full border border-[#fde047] leading-none inline-block';
+      } else if (isCouncil) {
+        roleBadgeEl.textContent = '★ สภานักเรียน';
+        roleBadgeEl.className = 'text-[10px] sm:text-[11px] font-black text-[#15803d] bg-[#dcfce7] px-2 py-0.5 rounded-full border border-[#86efac] leading-none inline-block';
       } else {
         roleBadgeEl.textContent = `${activeStudent.room} (เลขที่ ${activeStudent.no || '-'})`;
         roleBadgeEl.className = 'text-[10px] sm:text-[11px] font-extrabold text-on-surface-variant font-thai leading-none';
@@ -727,8 +731,12 @@
     document.getElementById('prof-room').textContent = `ชั้น ${activeStudent.room} (เลขที่ ${activeStudent.no || '-'})`;
     document.getElementById('prof-phone').value = activeStudent.phone_number || '';
 
-    // Dynamic Role-Based Buttons (Council Scanner & Admin Portal)
-    const isCouncil = activeStudent.student_id === '32650' && activeStudent.is_council_member === true;
+    // Dynamic Role-Based Buttons:
+    // - Council Members (28 students): QR Scanner Access
+    // - Sole Super Admin (32650): Standalone Admin Backoffice Dashboard Access
+    const isCouncil = activeStudent.is_council_member === true || activeStudent.student_id === '32650';
+    const isSuperAdmin = activeStudent.student_id === '32650';
+
     const navCouncilCenter = document.getElementById('nav-council-center-item');
     const councilProfileBox = document.getElementById('box-council-profile-shortcut');
     const adminProfileBox = document.getElementById('box-admin-profile-shortcut');
@@ -736,12 +744,15 @@
     if (isCouncil) {
       if (navCouncilCenter) navCouncilCenter.style.display = 'block';
       if (councilProfileBox) councilProfileBox.style.display = 'block';
-      if (adminProfileBox) adminProfileBox.style.display = 'block';
     } else {
       if (navCouncilCenter) navCouncilCenter.style.display = 'none';
       if (councilProfileBox) councilProfileBox.style.display = 'none';
-      if (adminProfileBox) adminProfileBox.style.display = 'none';
       if (currentTab === 'view-scanner') switchTab('tab-home');
+    }
+
+    // Only Sole Admin 32650 gets the Admin Backoffice Dashboard Button!
+    if (adminProfileBox) {
+      adminProfileBox.style.display = isSuperAdmin ? 'block' : 'none';
     }
   }
 
