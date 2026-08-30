@@ -299,8 +299,8 @@
     if (!canvas) return;
 
     const total = petCount + canCount;
-    const petPct = total > 0 ? Math.round((petCount / total) * 100) : 50;
-    const canPct = total > 0 ? (100 - petPct) : 50;
+    const petPct = total > 0 ? Math.round((petCount / total) * 100) : 0;
+    const canPct = total > 0 ? (100 - petPct) : 0;
 
     document.getElementById('donut-pct-pet').textContent = `${petPct}% (${petCount} ชิ้น)`;
     document.getElementById('donut-pct-can').textContent = `${canPct}% (${canCount} ชิ้น)`;
@@ -310,13 +310,14 @@
     }
 
     if (window.Chart) {
+      const hasData = total > 0;
       ratioDonutChartInstance = new Chart(canvas, {
         type: 'doughnut',
         data: {
-          labels: ['ขวด PET', 'กระป๋อง CAN'],
+          labels: hasData ? ['ขวด PET', 'กระป๋อง CAN'] : ['ยังไม่มีข้อมูล'],
           datasets: [{
-            data: [petCount || 1, canCount || 1],
-            backgroundColor: ['#1976D2', '#F57F17'],
+            data: hasData ? [petCount, canCount] : [1],
+            backgroundColor: hasData ? ['#1976D2', '#F57F17'] : ['#E0E0E0'],
             borderWidth: 2,
             borderColor: '#ffffff'
           }]
@@ -339,19 +340,26 @@
 
     const roomCounts = {};
     allRecycleLogs.forEach(l => {
-      const room = l.students?.room || 'ม.1/1';
-      if (!roomCounts[room]) roomCounts[room] = { room: room, count: 0, points: 0 };
-      roomCounts[room].count += 1;
-      roomCounts[room].points += (l.points_earned || 10);
+      const room = l.students?.room;
+      if (room) {
+        if (!roomCounts[room]) roomCounts[room] = { room: room, count: 0, points: 0 };
+        roomCounts[room].count += 1;
+        roomCounts[room].points += (l.points_earned || 10);
+      }
     });
 
     const sortedRooms = Object.values(roomCounts).sort((a, b) => b.count - a.count).slice(0, 5);
     const MEDALS = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
 
     if (sortedRooms.length === 0) {
-      sortedRooms.push({ room: 'ม.1/1', count: 12, points: 150 });
-      sortedRooms.push({ room: 'ม.4/2', count: 9, points: 110 });
-      sortedRooms.push({ room: 'ม.2/3', count: 7, points: 90 });
+      listEl.innerHTML = `
+        <div class="bg-surface-container-low p-6 rounded-[20px] border border-secondary-container text-center flex flex-col items-center gap-2 text-on-surface-variant">
+          <span class="material-symbols-rounded text-3xl text-primary-container">recycling</span>
+          <span class="text-[13px] font-bold">ยังไม่มีประวัติการรีไซเคิลของห้องเรียน</span>
+          <span class="text-[11px] text-on-surface-variant/70 font-thai">เมื่อนักเรียนเริ่มหยอดขวดที่ตู้ อันดับห้องเรียนจะแสดงขึ้นที่นี่อัตโนมัติ 🌿</span>
+        </div>
+      `;
+      return;
     }
 
     listEl.innerHTML = sortedRooms.map((r, i) => `
