@@ -1,8 +1,10 @@
 /**
- * KIOSK APPLICATION CONTROLLER
+ * KIOSK APPLICATION CONTROLLER - SappaRecycle (โรงเรียนสรรพวิทยาคม)
  * Supports:
- * - 4 Navigation Screens (Welcome -> Numpad ID -> Batch Deposit -> Summary)
- * - 2,906 Student database search
+ * - 4 Touchscreen Screens (Welcome -> 5-Digit PIN ID -> Live Deposit -> Summary)
+ * - Real-time Supabase Cloud sync with offline fallback for 2,906 students
+ * - Web Audio API Synthetic Sound Engine (Chimes, Beeps, Fanfare, Buzz)
+ * - WebSerial API USB Serial Port Controller for Raspberry Pi 4 / Microcontroller
  * - ADR-0001 Progressive Phone Registration (Skip or Save)
  * - Sensor Fusion integration & AI live feedback
  * - Celebration Confetti & Auto Return Countdown
@@ -18,8 +20,24 @@
   let sessionPET = 0;
   let sessionCAN = 0;
   let returnCountdownTimer = null;
+  let serialPort = null;
+  let serialReader = null;
 
-  // Local student cache (loaded from JSON if available or fallback dataset)
+  // Supabase Client
+  let supabaseClient = null;
+  if (window.supabase && window.APP_CONFIG) {
+    try {
+      supabaseClient = window.supabase.createClient(
+        window.APP_CONFIG.SUPABASE_URL,
+        window.APP_CONFIG.SUPABASE_ANON_KEY
+      );
+      console.log("✅ Kiosk Supabase Cloud Connected");
+    } catch (e) {
+      console.warn("Supabase init error:", e);
+    }
+  }
+
+  // Local student cache (for offline fallback)
   let studentDatabase = new Map();
 
   // Elements
@@ -62,10 +80,15 @@
   const binAlertBanner = document.getElementById('bin-alert-banner');
   const binAlertMsg = document.getElementById('bin-alert-msg');
 
+  // Serial elements
+  const btnSerialConnect = document.getElementById('btn-serial-connect');
+  const serialStatusText = document.getElementById('serial-status-text');
+  const serialBtnText = document.getElementById('serial-btn-text');
+
   // Initialize Hardware Simulator
   const simulator = new window.HardwareSimulator(handleHardwareEvent);
 
-  // Load 2,906 students
+  // Load 2,906 students offline fallback
   async function loadStudentData() {
     try {
       const resp = await fetch('../students_all_2906.json');
@@ -75,17 +98,15 @@
           student_id: s.student_id,
           full_name: s.full_name,
           room: s.room,
+          no: s.no,
           phone_number: s.phone_number || null,
           current_points: s.current_points || 0,
           total_bottles: s.total_bottles || 0
         }));
-        console.log(`Loaded ${studentDatabase.size} students into Kiosk memory.`);
+        console.log(`Loaded ${studentDatabase.size} students into Kiosk offline cache.`);
       }
     } catch (e) {
-      console.warn('Local JSON load fallback, seeding basic demo data');
-      // Fallback minimal demo
-      studentDatabase.set('34889', { student_id: '34889', full_name: 'เด็กชายชาญนนท์ -', room: 'ม.1/1', phone_number: null, current_points: 40 });
-      studentDatabase.set('34890', { student_id: '34890', full_name: 'เด็กชายณัฐชนน อรรถศิริ', room: 'ม.1/1', phone_number: '0812345678', current_points: 120 });
+      console.warn('Local JSON load fallback');
     }
   }
 
@@ -98,7 +119,7 @@
   }
 
   // --------------------------------------------------------------------------
-  // Hardware Simulator Event Handler
+  // Hardware Event Handler (Simulator & Serial)
   // --------------------------------------------------------------------------
   function handleHardwareEvent(eventType, payload) {
     console.log(`[HW EVENT] ${eventType}:`, payload);
@@ -141,17 +162,19 @@
       }
       updateSessionPoints();
       triggerMiniConfetti();
+      if (window.kioskSound) window.kioskSound.playCoinChime();
     }
 
     if (eventType === 'ITEM_REJECTED') {
       aiBox.style.display = 'none';
       sensorStatus.innerHTML = '<i data-lucide="alert-triangle"></i> ขยะแปลกปลอม - ส่งคืนแล้ว';
       sensorStatus.style.color = '#ef4444';
-      lucide.createIcons();
+      if (window.kioskSound) window.kioskSound.playRejectBuzz();
+      if (window.lucide) lucide.createIcons();
       setTimeout(() => {
         sensorStatus.innerHTML = '<i data-lucide="activity"></i> พร้อมรับขวด';
         sensorStatus.style.color = '#34d399';
-        lucide.createIcons();
+        if (window.lucide) lucide.createIcons();
       }, 3000);
     }
 
@@ -176,7 +199,8 @@
   }
 
   function updateSessionPoints() {
-    const totalPts = (sessionPET * 10) + (sessionCAN * 20);
+    const totalPts = (sessionPET * (window.APP_CONFIG?.POINTS_PET || 10)) + 
+                     (sessionCAN * (window.APP_CONFIG?.POINTS_CAN || 20));
     sessionPointsEarned.innerHTML = `${totalPts} <small>แต้ม</small>`;
   }
 
@@ -193,7 +217,7 @@
   // --------------------------------------------------------------------------
   // Numpad & Identification (Ticket 02)
   // --------------------------------------------------------------------------
-  function updatePinDisplay() {
+  async function updatePinDisplay() {
     let text = '';
     for (let i = 0; i < 5; i++) {
       text += (i < pinInput.length ? pinInput[i] : '_') + ' ';
@@ -201,18 +225,42 @@
     pinDisplay.textContent = text.trim();
 
     if (pinInput.length === 5) {
-      const student = studentDatabase.get(pinInput);
-      if (student) {
-        activeStudent = student;
-        previewName.textContent = student.full_name;
-        previewRoom.textContent = `ชั้น ${student.room} | รหัส ${student.student_id}`;
-        studentPreview.style.display = 'flex';
+      previewName.textContent = 'กำลังค้นหาข้อมูล...';
+      previewRoom.textContent = `รหัส ${pinInput}`;
+      studentPreview.style.display = 'flex';
+
+      // 1. Try Supabase Cloud first
+      let resolvedStudent = null;
+      if (supabaseClient) {
+        try {
+          const { data, error } = await supabaseClient
+            .from('students')
+            .select('*')
+            .eq('student_id', pinInput)
+            .maybeSingle();
+
+          if (data && !error) {
+            resolvedStudent = data;
+          }
+        } catch (err) {
+          console.warn("Supabase lookup error, falling back to local memory:", err);
+        }
+      }
+
+      // 2. Fallback to local memory cache
+      if (!resolvedStudent) {
+        resolvedStudent = studentDatabase.get(pinInput);
+      }
+
+      if (resolvedStudent) {
+        activeStudent = resolvedStudent;
+        previewName.textContent = resolvedStudent.full_name;
+        previewRoom.textContent = `ชั้น ${resolvedStudent.room} (เลขที่ ${resolvedStudent.no || '-'}) | รหัส ${resolvedStudent.student_id}`;
         btnSubmitId.disabled = false;
       } else {
-        activeStudent = { student_id: pinInput, full_name: 'นักเรียนทั่วไป', room: 'ม.1/1', current_points: 0 };
+        activeStudent = { student_id: pinInput, full_name: 'นักเรียนสรรพวิทย์ (ทั่วไป)', room: 'ม.1/1', current_points: 0 };
         previewName.textContent = 'นักเรียนใหม่ (ไม่พบในสารบบ)';
         previewRoom.textContent = `รหัส ${pinInput}`;
-        studentPreview.style.display = 'flex';
         btnSubmitId.disabled = false;
       }
     } else {
@@ -227,6 +275,7 @@
   // --------------------------------------------------------------------------
   function checkPhoneAndProceed() {
     if (!activeStudent) return;
+    if (window.kioskSound) window.kioskSound.playKeyClick();
 
     if (!activeStudent.phone_number || activeStudent.phone_number.trim() === '') {
       // Show ADR-0001 Phone Modal with Skip
@@ -250,33 +299,46 @@
     sessionStudentInfo.textContent = `${activeStudent.room} (รหัส ${activeStudent.student_id})`;
 
     showScreen('screen-deposit');
+    if (window.kioskSound) window.kioskSound.playKeyClick();
   }
 
   // --------------------------------------------------------------------------
-  // Complete Session & Celebration (Ticket 03)
+  // Complete Session & Supabase Cloud Sync (Ticket 03 & ADR-0012)
   // --------------------------------------------------------------------------
-  function finishDepositSession() {
-    const earned = (sessionPET * 10) + (sessionCAN * 20);
-    activeStudent.current_points += earned;
+  async function finishDepositSession() {
+    if (window.kioskSound) window.kioskSound.playCelebrationFanfare();
+
+    const earnedPts = (sessionPET * (window.APP_CONFIG?.POINTS_PET || 10)) + 
+                      (sessionCAN * (window.APP_CONFIG?.POINTS_CAN || 20));
+    const totalItems = sessionPET + sessionCAN;
+
+    // Update student state
+    const prevPoints = activeStudent.current_points || 0;
+    const newPoints = prevPoints + earnedPts;
+    const prevBottles = activeStudent.total_bottles_recycled || activeStudent.total_bottles || 0;
+    const newBottles = prevBottles + totalItems;
+
+    activeStudent.current_points = newPoints;
+    activeStudent.total_bottles_recycled = newBottles;
 
     document.getElementById('summary-pet-count').textContent = `${sessionPET} ใบ`;
     document.getElementById('summary-can-count').textContent = `${sessionCAN} ใบ`;
-    document.getElementById('summary-earned-pts').textContent = `+${earned} แต้ม`;
-    document.getElementById('summary-total-pts').textContent = `${activeStudent.current_points} แต้ม`;
+    document.getElementById('summary-earned-pts').textContent = `+${earnedPts} แต้ม`;
+    document.getElementById('summary-total-pts').textContent = `${newPoints} แต้ม`;
 
     showScreen('screen-summary');
 
     // Grand Celebration Confetti
     if (typeof confetti === 'function') {
       confetti({
-        particleCount: 100,
+        particleCount: 120,
         spread: 100,
         origin: { y: 0.6 }
       });
     }
 
     // 10s Auto countdown back to welcome
-    let sec = 10;
+    let sec = window.APP_CONFIG?.AUTO_RETURN_COUNTDOWN_SEC || 10;
     const cdElem = document.getElementById('countdown-sec');
     cdElem.textContent = sec;
     clearInterval(returnCountdownTimer);
@@ -288,6 +350,52 @@
         resetToWelcome();
       }
     }, 1000);
+
+    // Sync to Supabase Cloud asynchronously
+    if (supabaseClient && activeStudent && totalItems > 0) {
+      try {
+        // 1. Insert PET logs
+        const logsToInsert = [];
+        for (let i = 0; i < sessionPET; i++) {
+          logsToInsert.push({
+            student_id: activeStudent.student_id,
+            item_type: 'PET',
+            points_earned: window.APP_CONFIG?.POINTS_PET || 10,
+            status: 'ACCEPTED'
+          });
+        }
+        for (let i = 0; i < sessionCAN; i++) {
+          logsToInsert.push({
+            student_id: activeStudent.student_id,
+            item_type: 'CAN',
+            points_earned: window.APP_CONFIG?.POINTS_CAN || 20,
+            status: 'ACCEPTED'
+          });
+        }
+
+        if (logsToInsert.length > 0) {
+          await supabaseClient.from('recycle_logs').insert(logsToInsert);
+        }
+
+        // 2. Update Student Points & Bottles
+        const updatePayload = {
+          current_points: newPoints,
+          total_bottles_recycled: newBottles
+        };
+        if (activeStudent.phone_number) {
+          updatePayload.phone_number = activeStudent.phone_number;
+        }
+
+        await supabaseClient
+          .from('students')
+          .update(updatePayload)
+          .eq('student_id', activeStudent.student_id);
+
+        console.log(`✅ Synced ${totalItems} items (+${earnedPts} pts) to Supabase Cloud for student ${activeStudent.student_id}`);
+      } catch (err) {
+        console.error("Cloud sync error:", err);
+      }
+    }
   }
 
   function resetToWelcome() {
@@ -302,22 +410,94 @@
   }
 
   // --------------------------------------------------------------------------
+  // WebSerial API Manager for Raspberry Pi 4 USB Serial
+  // --------------------------------------------------------------------------
+  async function connectWebSerial() {
+    if (!('serial' in navigator)) {
+      alert("เบราว์เซอร์นี้ยังไม่รองรับ WebSerial API (แนะนำให้ใช้ Google Chrome หรือ Chromium บน Raspberry Pi 4)");
+      return;
+    }
+
+    try {
+      serialPort = await navigator.serial.requestPort();
+      await serialPort.open({ baudRate: window.APP_CONFIG?.SERIAL_BAUD_RATE || 115200 });
+
+      serialStatusText.textContent = "สถานะ: เชื่อมต่อพอร์ต USB สำเร็จ (Live Serial)";
+      serialStatusText.style.color = "#34d399";
+      serialBtnText.textContent = "เชื่อมต่อ USB แล้ว ✅";
+      btnSerialConnect.style.background = "#065f46";
+
+      readSerialStream();
+    } catch (err) {
+      console.warn("Serial connection error:", err);
+      serialStatusText.textContent = "สถานะ: การเชื่อมต่อถูกยกเลิก / ไม่สำเร็จ";
+      serialStatusText.style.color = "#f87171";
+    }
+  }
+
+  async function readSerialStream() {
+    const textDecoder = new TextDecoderStream();
+    const readableStreamClosed = serialPort.readable.pipeTo(textDecoder.writable);
+    serialReader = textDecoder.readable.getReader();
+
+    let buffer = '';
+    try {
+      while (true) {
+        const { value, done } = await serialReader.read();
+        if (done) break;
+        buffer += value;
+        const lines = buffer.split('\n');
+        buffer = lines.pop(); // Keep partial line
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed) handleSerialCommand(trimmed);
+        }
+      }
+    } catch (err) {
+      console.warn("Serial read loop closed:", err);
+    }
+  }
+
+  function handleSerialCommand(cmd) {
+    console.log(`[SERIAL IN] ${cmd}`);
+    if (cmd === 'DROP:PET') {
+      simulator.insertPET();
+    } else if (cmd === 'DROP:CAN') {
+      simulator.insertCAN();
+    } else if (cmd === 'DROP:REJECT') {
+      simulator.insertReject();
+    } else if (cmd.startsWith('BIN:PET:')) {
+      const level = parseInt(cmd.replace('BIN:PET:', ''), 10);
+      simulator.setBinLevels(level, simulator.canBinLevel);
+    } else if (cmd.startsWith('BIN:CAN:')) {
+      const level = parseInt(cmd.replace('BIN:CAN:', ''), 10);
+      simulator.setBinLevels(simulator.petBinLevel, level);
+    }
+  }
+
+  // --------------------------------------------------------------------------
   // Event Bindings
   // --------------------------------------------------------------------------
   function bindEvents() {
     // Start button
     document.getElementById('btn-start-flow').addEventListener('click', () => {
+      if (window.kioskSound) window.kioskSound.playKeyClick();
       pinInput = '';
       updatePinDisplay();
       showScreen('screen-numpad');
     });
 
     // Back to welcome
-    document.getElementById('btn-back-to-welcome').addEventListener('click', resetToWelcome);
+    document.getElementById('btn-back-to-welcome').addEventListener('click', () => {
+      if (window.kioskSound) window.kioskSound.playKeyClick();
+      resetToWelcome();
+    });
 
     // Numpad keys
     document.querySelectorAll('.num-key[data-key]').forEach(btn => {
       btn.addEventListener('click', () => {
+        if (window.kioskSound) window.kioskSound.playKeyClick();
         if (pinInput.length < 5) {
           pinInput += btn.getAttribute('data-key');
           updatePinDisplay();
@@ -326,11 +506,13 @@
     });
 
     document.getElementById('btn-num-clear').addEventListener('click', () => {
+      if (window.kioskSound) window.kioskSound.playKeyClick();
       pinInput = '';
       updatePinDisplay();
     });
 
     document.getElementById('btn-num-backspace').addEventListener('click', () => {
+      if (window.kioskSound) window.kioskSound.playKeyClick();
       pinInput = pinInput.slice(0, -1);
       updatePinDisplay();
     });
@@ -341,6 +523,7 @@
     // Modal Numpad Keys (Phone Modal)
     document.querySelectorAll('.m-key[data-mkey]').forEach(btn => {
       btn.addEventListener('click', () => {
+        if (window.kioskSound) window.kioskSound.playKeyClick();
         if (phoneModalInput.length < 10) {
           phoneModalInput += btn.getAttribute('data-mkey');
           inputPhoneModal.value = phoneModalInput;
@@ -349,21 +532,25 @@
     });
 
     document.getElementById('btn-modal-clear').addEventListener('click', () => {
+      if (window.kioskSound) window.kioskSound.playKeyClick();
       phoneModalInput = '';
       inputPhoneModal.value = '';
     });
 
     document.getElementById('btn-modal-backspace').addEventListener('click', () => {
+      if (window.kioskSound) window.kioskSound.playKeyClick();
       phoneModalInput = phoneModalInput.slice(0, -1);
       inputPhoneModal.value = phoneModalInput;
     });
 
     // Modal Actions (ADR-0001)
     document.getElementById('btn-modal-phone-skip').addEventListener('click', () => {
+      if (window.kioskSound) window.kioskSound.playKeyClick();
       startDepositSession();
     });
 
     document.getElementById('btn-modal-phone-save').addEventListener('click', () => {
+      if (window.kioskSound) window.kioskSound.playKeyClick();
       if (phoneModalInput.length >= 9 && activeStudent) {
         activeStudent.phone_number = phoneModalInput;
       }
@@ -374,7 +561,42 @@
     document.getElementById('btn-finish-deposit').addEventListener('click', finishDepositSession);
 
     // Summary done button
-    document.getElementById('btn-done-back').addEventListener('click', resetToWelcome);
+    document.getElementById('btn-done-back').addEventListener('click', () => {
+      if (window.kioskSound) window.kioskSound.playKeyClick();
+      resetToWelcome();
+    });
+
+    // Sound toggle
+    const btnToggleSound = document.getElementById('btn-toggle-sound');
+    if (btnToggleSound) {
+      btnToggleSound.addEventListener('click', () => {
+        if (window.kioskSound) {
+          const isAudioOn = window.kioskSound.toggleMute();
+          const soundIcon = document.getElementById('sound-icon');
+          if (soundIcon) {
+            soundIcon.setAttribute('data-lucide', isAudioOn ? 'volume-2' : 'volume-x');
+            if (window.lucide) lucide.createIcons();
+          }
+        }
+      });
+    }
+
+    // Fullscreen toggle
+    const btnToggleFullscreen = document.getElementById('btn-toggle-fullscreen');
+    if (btnToggleFullscreen) {
+      btnToggleFullscreen.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+          document.exitFullscreen().catch(() => {});
+        }
+      });
+    }
+
+    // WebSerial Connect button
+    if (btnSerialConnect) {
+      btnSerialConnect.addEventListener('click', connectWebSerial);
+    }
 
     // Hardware Simulator Buttons
     document.getElementById('sim-drop-pet').addEventListener('click', () => simulator.insertPET());
@@ -395,16 +617,23 @@
       simDock.classList.toggle('collapsed');
     });
 
-    // Clock
-    setInterval(() => {
+    // Clock & Date
+    function updateClock() {
       const now = new Date();
       document.getElementById('current-time').textContent = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-    }, 1000);
+      const dateEl = document.getElementById('current-date');
+      if (dateEl) {
+        dateEl.textContent = now.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+      }
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
   }
 
   // Boot
   document.addEventListener('DOMContentLoaded', () => {
     loadStudentData();
     bindEvents();
+    if (window.lucide) lucide.createIcons();
   });
 })();

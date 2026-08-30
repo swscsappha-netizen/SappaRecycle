@@ -12,6 +12,10 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Canvas Confetti for Celebration -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <!-- Supabase Cloud SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="sound.js"></script>
   <link rel="stylesheet" href="index.css">
 </head>
 <body>
@@ -35,18 +39,28 @@
           <div class="bin-pill" id="pet-bin-pill" title="ระดับความจุถังขวด PET">
             <span class="bin-dot normal" id="pet-bin-dot"></span>
             <span class="bin-name">ถัง PET</span>
-            <span class="bin-val" id="pet-bin-val">25%</span>
+            <span class="bin-val" id="pet-bin-val">0%</span>
           </div>
           <div class="bin-pill" id="can-bin-pill" title="ระดับความจุถังกระป๋อง CAN">
             <span class="bin-dot normal" id="can-bin-dot"></span>
             <span class="bin-name">ถังกระป๋อง</span>
-            <span class="bin-val" id="can-bin-val">18%</span>
+            <span class="bin-val" id="can-bin-val">0%</span>
           </div>
+        </div>
+
+        <!-- Cloud Sync & Audio Controls -->
+        <div class="kiosk-ctrl-group">
+          <button class="kiosk-icon-btn" id="btn-toggle-sound" title="เปิด/ปิดเสียงเอฟเฟกต์">
+            <i data-lucide="volume-2" id="sound-icon"></i>
+          </button>
+          <button class="kiosk-icon-btn" id="btn-toggle-fullscreen" title="ขยายเต็มจอ Kiosk">
+            <i data-lucide="maximize" id="fullscreen-icon"></i>
+          </button>
         </div>
 
         <div class="kiosk-clock">
           <span id="current-time">12:00</span>
-          <span class="clock-ampm" id="current-date">29 ส.ค.</span>
+          <span class="clock-ampm" id="current-date">--</span>
         </div>
       </div>
     </header>
@@ -319,21 +333,28 @@
       </div>
     </div>
 
-    <!-- Floating Hardware Simulator Dock (for PC testing & demonstration) -->
+    <!-- Floating Hardware Simulator & Serial USB Dock -->
     <div class="sim-dock collapsed" id="sim-dock">
       <div class="sim-dock-header" id="sim-dock-toggle">
-        <span class="sim-title"><i data-lucide="cpu"></i> Hardware Simulator</span>
+        <span class="sim-title"><i data-lucide="cpu"></i> Hardware & Serial Controller</span>
         <button class="btn-sim-toggle" id="btn-sim-toggle"><i data-lucide="chevron-up"></i></button>
       </div>
       <div class="sim-dock-body">
+        <div class="sim-serial-bar">
+          <button class="btn-serial-connect" id="btn-serial-connect">
+            <i data-lucide="usb"></i>
+            <span id="serial-btn-text">เชื่อมต่อพอร์ต USB (WebSerial)</span>
+          </button>
+          <span class="serial-status" id="serial-status-text">สถานะ: จำลองระบบ (Simulator Mode)</span>
+        </div>
         <div class="sim-btn-row">
           <button class="sim-btn pet" id="sim-drop-pet"><i data-lucide="cylinder"></i> จำลองหยอด PET (+10)</button>
           <button class="sim-btn can" id="sim-drop-can"><i data-lucide="box"></i> จำลองหยอด CAN (+20)</button>
           <button class="sim-btn reject" id="sim-drop-reject"><i data-lucide="ban"></i> จำลองขยะแปลกปลอม (Reject)</button>
         </div>
         <div class="sim-slider-row">
-          <label>ถัง PET: <input type="range" id="sim-pet-bin-slider" min="0" max="100" value="25"></label>
-          <label>ถัง CAN: <input type="range" id="sim-can-bin-slider" min="0" max="100" value="18"></label>
+          <label>ถัง PET: <input type="range" id="sim-pet-bin-slider" min="0" max="100" value="0"></label>
+          <label>ถัง CAN: <input type="range" id="sim-can-bin-slider" min="0" max="100" value="0"></label>
         </div>
       </div>
     </div>

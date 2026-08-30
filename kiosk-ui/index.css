@@ -1162,8 +1162,73 @@ body {
   flex: 1;
 }
 
-.sim-slider-row input[type="range"] {
-  flex: 1;
+/* Header Controls (Sound & Fullscreen) */
+.kiosk-ctrl-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kiosk-icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.kiosk-icon-btn:hover {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: var(--brand-green);
+  color: var(--brand-green);
+}
+
+.kiosk-icon-btn:active {
+  transform: scale(0.92);
+}
+
+/* WebSerial Dock Styling */
+.sim-serial-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+}
+
+.btn-serial-connect {
+  background: #047857;
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-family: var(--font-thai);
+  font-size: 0.8rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-serial-connect:hover {
+  background: #059669;
+}
+
+.serial-status {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 500;
 }
 
 /* Animations */
@@ -1186,3 +1251,4 @@ body {
   from { transform: scale(0.3); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
+
