@@ -492,15 +492,15 @@
     if (count < 10) {
       const needed = 10 - count;
       const pct = Math.round((count / 10) * 100);
-      return { rank: '🌱 ต้นกล้าฝึกหัด', next: `อีก ${needed} ชิ้น อัปเลเวล!`, pct: Math.max(20, pct) };
+      return { rank: '🌱 ต้นกล้าฝึกหัด', next: `อีก ${needed} ชิ้น อัปเลเวล!`, pct: pct };
     } else if (count < 30) {
       const needed = 30 - count;
       const pct = Math.round(((count - 10) / 20) * 100);
-      return { rank: '🌿 ฮีโร่พิทักษ์ป่า', next: `อีก ${needed} ชิ้น เลเวลถัดไป!`, pct: Math.max(20, pct) };
+      return { rank: '🌿 ฮีโร่พิทักษ์ป่า', next: `อีก ${needed} ชิ้น เลเวลถัดไป!`, pct: pct };
     } else if (count < 60) {
       const needed = 60 - count;
       const pct = Math.round(((count - 30) / 30) * 100);
-      return { rank: '🌳 พฤกษาผู้พิทักษ์โลก', next: `อีก ${needed} ชิ้น ขั้นสูงสุด!`, pct: Math.max(20, pct) };
+      return { rank: '🌳 พฤกษาผู้พิทักษ์โลก', next: `อีก ${needed} ชิ้น ขั้นสูงสุด!`, pct: pct };
     } else {
       return { rank: '👑 ยอดนักรีไซเคิลสรรพวิทย์', next: 'เลเวลสูงสุดแล้ว สุดยอดมาก! 🎉', pct: 100 };
     }
