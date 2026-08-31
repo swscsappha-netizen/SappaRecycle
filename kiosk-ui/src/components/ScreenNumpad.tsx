@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Delete, RotateCcw, ArrowRight, UserCheck, Search, ChevronLeft, Check, Sparkles, Database } from 'lucide-react';
 import { Student } from '../types';
@@ -17,43 +17,57 @@ export const ScreenNumpad: React.FC<ScreenNumpadProps> = ({
   onBack,
 }) => {
   const [pin, setPin] = useState<string>('');
-  const [student, setStudent] = useState<Student | null>(null);
-  const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [liveData, setLiveData] = useState<Student | null>(null);
+  const [isSearchingSupabase, setIsSearchingSupabase] = useState<boolean>(false);
 
-  // When PIN reaches 5 digits: Instant local match + background Supabase live sync
+  // 1. Instant 0ms synchronous lookup from 2,906 student roster (zero frame delay)
+  const localStudent = useMemo(() => {
+    if (pin.length === 5) {
+      return lookupStudentById(pin);
+    }
+    return null;
+  }, [pin]);
+
+  // Combined student: Live Supabase data if matches current PIN, otherwise local record
+  const student = liveData && liveData.id === pin ? liveData : localStudent;
+
+  // Sound effect & background Supabase live points sync
   useEffect(() => {
     let isCancelled = false;
 
     if (pin.length === 5) {
-      // 1. Instant 0ms local match from official 2,906 school roster
-      const localStudent = lookupStudentById(pin);
       if (localStudent) {
-        setStudent(localStudent);
         SoundEngine.playChime();
+      } else {
+        SoundEngine.playBuzz();
       }
 
-      // 2. Fetch live points & line linkage from Supabase Cloud
-      setIsSearching(!localStudent);
+      // Background Supabase fetch for live points & LINE binding
+      setIsSearchingSupabase(!localStudent);
       fetchStudentFromSupabase(pin)
-        .then(liveStudent => {
-          if (!isCancelled && liveStudent) {
-            setStudent(liveStudent);
-            setIsSearching(false);
+        .then(res => {
+          if (!isCancelled && res) {
+            setLiveData(res);
+          }
+          if (!isCancelled) {
+            setIsSearchingSupabase(false);
           }
         })
         .catch(err => {
-          console.warn('[ScreenNumpad] Supabase background fetch error:', err);
-          setIsSearching(false);
+          console.warn('[ScreenNumpad] Supabase fetch error:', err);
+          if (!isCancelled) {
+            setIsSearchingSupabase(false);
+          }
         });
     } else {
-      setStudent(null);
-      setIsSearching(false);
+      setLiveData(null);
+      setIsSearchingSupabase(false);
     }
 
     return () => {
       isCancelled = true;
     };
-  }, [pin]);
+  }, [pin, localStudent]);
 
   const handleKeyPress = (digit: string) => {
     if (pin.length < 5) {
@@ -171,23 +185,13 @@ export const ScreenNumpad: React.FC<ScreenNumpadProps> = ({
           {/* Live Student Profile Card upon 5 Digits */}
           <div className="min-h-[100px] flex items-center">
             <AnimatePresence mode="wait">
-              {isSearching ? (
+              {student ? (
                 <motion.div
-                  key="searching"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="w-full bg-white/90 rounded-2xl p-4 border border-emerald-200 shadow-sm flex items-center justify-center gap-2 text-slate-500 text-xs font-bold"
-                >
-                  <Search className="w-4 h-4 animate-spin text-emerald-600" />
-                  <span>กำลังค้นหาข้อมูลนักเรียนจากฐานข้อมูล...</span>
-                </motion.div>
-              ) : student ? (
-                <motion.div
-                  key="found"
-                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                  key={`found-${student.id}`}
+                  initial={{ opacity: 0, scale: 0.95, y: 6 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
                   className="w-full bg-white/95 rounded-2xl p-3 md:p-3.5 border-2 border-emerald-400 shadow-md flex items-center justify-between gap-3 text-left relative overflow-hidden"
                 >
                   <div className="flex items-center gap-3 relative z-10">
@@ -204,7 +208,7 @@ export const ScreenNumpad: React.FC<ScreenNumpadProps> = ({
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-500 font-medium mt-0.5">
-                        เลขที่ {student.seatNumber} • แต้มสะสมเดิม: <strong className="text-emerald-700 font-bold">{student.pointsBalance}</strong> แต้ม
+                        เลขที่ {student.seatNumber} • แต้มสะสม: <strong className="text-emerald-700 font-bold">{student.pointsBalance}</strong> แต้ม
                       </p>
                     </div>
                   </div>
@@ -213,12 +217,25 @@ export const ScreenNumpad: React.FC<ScreenNumpadProps> = ({
                     <PetBottleMascot size={45} action="happy" />
                   </div>
                 </motion.div>
-              ) : pin.length === 5 ? (
+              ) : isSearchingSupabase ? (
                 <motion.div
-                  key="not-found"
+                  key="searching"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
+                  transition={{ duration: 0.1 }}
+                  className="w-full bg-white/90 rounded-2xl p-4 border border-emerald-200 shadow-sm flex items-center justify-center gap-2 text-slate-500 text-xs font-bold"
+                >
+                  <Search className="w-4 h-4 animate-spin text-emerald-600" />
+                  <span>กำลังค้นหาข้อมูลนักเรียนจากฐานข้อมูล...</span>
+                </motion.div>
+              ) : pin.length === 5 ? (
+                <motion.div
+                  key="not-found"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
                   className="w-full bg-rose-50/90 rounded-2xl p-3.5 border border-rose-200 text-rose-700 text-xs font-bold text-center"
                 >
                   ไม่พบรหัสนักเรียนในระบบ กรุณาตรวจสอบรหัส 5 หลักอีกครั้ง
