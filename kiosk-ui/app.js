@@ -1,12 +1,15 @@
 /**
  * KIOSK APPLICATION CONTROLLER - SappaRecycle (โรงเรียนสรรพวิทยาคม)
  * Supports:
+ * - Boot Splash Screen Loader & Smooth Transitions
  * - 4 Touchscreen Screens (Welcome -> 5-Digit PIN ID -> Live Deposit -> Summary)
  * - Real-time Supabase Cloud sync with offline fallback for 2,906 students
  * - Web Audio API Synthetic Sound Engine (Chimes, Beeps, Fanfare, Buzz)
  * - WebSerial API USB Serial Port Controller for Raspberry Pi 4 / Microcontroller
+ * - Live AI Laser Scanner & Animated Conveyor Motion
+ * - Dynamic Floating Score Popups (+10 Pts ✨ / +20 Pts 🌟)
+ * - 60fps Count-Up Score Telemetry Animation
  * - ADR-0001 Progressive Phone Registration (Skip or Save)
- * - Sensor Fusion integration & AI live feedback
  * - Celebration Confetti & Auto Return Countdown
  */
 
@@ -53,7 +56,6 @@
   const studentPreview = document.getElementById('student-preview');
   const previewName = document.getElementById('preview-name');
   const previewRoom = document.getElementById('preview-room');
-  const previewId = document.getElementById('preview-id');
 
   // Phone Modal (ADR-0001)
   const modalPhone = document.getElementById('modal-phone');
@@ -71,14 +73,9 @@
   const sensorStatus = document.getElementById('sensor-status');
   const conveyorOverlay = document.getElementById('conveyor-overlay');
   const conveyorStatusText = document.getElementById('conveyor-status-text');
-
-  // Bin elements
-  const petBinVal = document.getElementById('pet-bin-val');
-  const canBinVal = document.getElementById('can-bin-val');
-  const petBinDot = document.getElementById('pet-bin-dot');
-  const canBinDot = document.getElementById('can-bin-dot');
-  const binAlertBanner = document.getElementById('bin-alert-banner');
-  const binAlertMsg = document.getElementById('bin-alert-msg');
+  const floatingScoreLayer = document.getElementById('floating-score-layer');
+  const cardPetCounter = document.getElementById('card-pet-counter');
+  const cardCanCounter = document.getElementById('card-can-counter');
 
   // Serial elements
   const btnSerialConnect = document.getElementById('btn-serial-connect');
@@ -108,6 +105,19 @@
     } catch (e) {
       console.warn('Local JSON load fallback');
     }
+
+    // Hide Splash Screen once data ready
+    setTimeout(hideSplashScreen, 800);
+  }
+
+  function hideSplashScreen() {
+    const splash = document.getElementById('kiosk-splash-screen');
+    if (splash) {
+      splash.classList.add('opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        if (splash.parentNode) splash.parentNode.removeChild(splash);
+      }, 700);
+    }
   }
 
   // Screen Switcher
@@ -127,13 +137,13 @@
     if (eventType === 'CONVEYOR_STATE') {
       if (payload.state === 'FORWARD') {
         conveyorStatusText.textContent = 'สายพานกำลังลำเลียงขวดไปจุดตรวจจับ...';
-        conveyorOverlay.style.background = 'rgba(14, 165, 233, 0.8)';
+        conveyorOverlay.style.background = 'rgba(15, 23, 42, 0.9)';
       } else if (payload.state === 'REVERSE') {
         conveyorStatusText.textContent = '⚠️ กำลังส่งคืนขยะแปลกปลอม (Reverse)...';
-        conveyorOverlay.style.background = 'rgba(239, 68, 68, 0.8)';
+        conveyorOverlay.style.background = 'rgba(185, 28, 28, 0.9)';
       } else {
         conveyorStatusText.textContent = 'สายพานพร้อมทำงาน';
-        conveyorOverlay.style.background = 'rgba(0, 0, 0, 0.7)';
+        conveyorOverlay.style.background = 'rgba(2, 6, 23, 0.8)';
       }
     }
 
@@ -141,7 +151,7 @@
       aiBox.style.display = 'flex';
       if (payload.class === 'PET') {
         aiTag.textContent = `ขวดพลาสติกใส PET (${(payload.confidence * 100).toFixed(1)}%)`;
-        aiTag.style.background = '#10b981';
+        aiTag.style.background = '#4caf50';
       } else if (payload.class === 'CAN') {
         aiTag.textContent = `กระป๋องอะลูมิเนียม CAN (${(payload.confidence * 100).toFixed(1)}%)`;
         aiTag.style.background = '#f59e0b';
@@ -156,9 +166,13 @@
       if (payload.item === 'PET') {
         sessionPET++;
         sessionPetCount.textContent = sessionPET;
+        spawnFloatingScore('PET', 10);
+        bounceCard(cardPetCounter);
       } else if (payload.item === 'CAN') {
         sessionCAN++;
         sessionCanCount.textContent = sessionCAN;
+        spawnFloatingScore('CAN', 20);
+        bounceCard(cardCanCounter);
       }
       updateSessionPoints();
       triggerMiniConfetti();
@@ -167,41 +181,43 @@
 
     if (eventType === 'ITEM_REJECTED') {
       aiBox.style.display = 'none';
-      sensorStatus.innerHTML = '<i data-lucide="alert-triangle"></i> ขยะแปลกปลอม - ส่งคืนแล้ว';
+      sensorStatus.innerHTML = '<span class="material-symbols-outlined text-base">warning</span> ขยะแปลกปลอม - ส่งคืนแล้ว';
       sensorStatus.style.color = '#ef4444';
       if (window.kioskSound) window.kioskSound.playRejectBuzz();
-      if (window.lucide) lucide.createIcons();
       setTimeout(() => {
-        sensorStatus.innerHTML = '<i data-lucide="activity"></i> พร้อมรับขวด';
-        sensorStatus.style.color = '#34d399';
-        if (window.lucide) lucide.createIcons();
+        sensorStatus.innerHTML = '<span class="material-symbols-outlined text-base animate-pulse">sensors</span> พร้อมรับขวด';
+        sensorStatus.style.color = '#087f23';
       }, 3000);
-    }
-
-    if (eventType === 'BIN_LEVEL_UPDATE') {
-      petBinVal.textContent = `${payload.petLevel}%`;
-      canBinVal.textContent = `${payload.canLevel}%`;
-
-      updateBinDot(petBinDot, payload.petLevel);
-      updateBinDot(canBinDot, payload.canLevel);
-
-      if (payload.petLevel >= 90 || payload.canLevel >= 90) {
-        binAlertBanner.style.display = 'flex';
-        binAlertMsg.textContent = 'แจ้งเตือน: ถังขยะใกล้เต็ม กรุณาติดต่อคุณครู/เจ้าหน้าที่ประจำจุด';
-      } else {
-        binAlertBanner.style.display = 'none';
-      }
     }
   }
 
-  function updateBinDot(dotElem, level) {
-    dotElem.className = 'bin-dot ' + (level >= 90 ? 'danger' : level >= 75 ? 'warning' : 'normal');
+  function spawnFloatingScore(type, pts) {
+    if (!floatingScoreLayer) return;
+
+    const el = document.createElement('div');
+    el.className = `floating-score ${type.toLowerCase()}`;
+    el.textContent = `+${pts} แต้ม ${type === 'PET' ? '✨' : '🌟'}`;
+    el.style.left = type === 'PET' ? '30%' : '60%';
+    el.style.top = '40%';
+
+    floatingScoreLayer.appendChild(el);
+    setTimeout(() => {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    }, 1200);
+  }
+
+  function bounceCard(cardEl) {
+    if (!cardEl) return;
+    cardEl.style.transform = 'scale(1.08)';
+    setTimeout(() => {
+      cardEl.style.transform = 'scale(1)';
+    }, 200);
   }
 
   function updateSessionPoints() {
     const totalPts = (sessionPET * (window.APP_CONFIG?.POINTS_PET || 10)) + 
                      (sessionCAN * (window.APP_CONFIG?.POINTS_CAN || 20));
-    sessionPointsEarned.innerHTML = `${totalPts} <small>แต้ม</small>`;
+    sessionPointsEarned.innerHTML = `${totalPts} <small class="text-xs text-gray-500 font-bold">แต้ม</small>`;
   }
 
   function triggerMiniConfetti() {
@@ -215,14 +231,22 @@
   }
 
   // --------------------------------------------------------------------------
-  // Numpad & Identification (Ticket 02)
+  // Numpad & Identification (5 PIN Boxes Animation)
   // --------------------------------------------------------------------------
   async function updatePinDisplay() {
-    let text = '';
+    // Update individual 5 PIN boxes
     for (let i = 0; i < 5; i++) {
-      text += (i < pinInput.length ? pinInput[i] : '_') + ' ';
+      const box = document.getElementById(`pbox-${i}`);
+      if (box) {
+        if (i < pinInput.length) {
+          box.textContent = pinInput[i];
+          box.classList.add('filled');
+        } else {
+          box.textContent = '_';
+          box.classList.remove('filled');
+        }
+      }
     }
-    pinDisplay.textContent = text.trim();
 
     if (pinInput.length === 5) {
       previewName.textContent = 'กำลังค้นหาข้อมูล...';
@@ -243,7 +267,7 @@
             resolvedStudent = data;
           }
         } catch (err) {
-          console.warn("Supabase lookup error, falling back to local memory:", err);
+          console.warn("Supabase lookup error, falling back to local cache:", err);
         }
       }
 
@@ -278,7 +302,6 @@
     if (window.kioskSound) window.kioskSound.playKeyClick();
 
     if (!activeStudent.phone_number || activeStudent.phone_number.trim() === '') {
-      // Show ADR-0001 Phone Modal with Skip
       phoneModalInput = '';
       inputPhoneModal.value = '';
       modalPhone.style.display = 'flex';
@@ -303,7 +326,7 @@
   }
 
   // --------------------------------------------------------------------------
-  // Complete Session & Supabase Cloud Sync (Ticket 03 & ADR-0012)
+  // Complete Session & Count-Up Animation (Ticket 03 & ADR-0015)
   // --------------------------------------------------------------------------
   async function finishDepositSession() {
     if (window.kioskSound) window.kioskSound.playCelebrationFanfare();
@@ -323,10 +346,12 @@
 
     document.getElementById('summary-pet-count').textContent = `${sessionPET} ใบ`;
     document.getElementById('summary-can-count').textContent = `${sessionCAN} ใบ`;
-    document.getElementById('summary-earned-pts').textContent = `+${earnedPts} แต้ม`;
-    document.getElementById('summary-total-pts').textContent = `${newPoints} แต้ม`;
 
     showScreen('screen-summary');
+
+    // Count-Up Animation for Points
+    animateCountUp(document.getElementById('summary-earned-pts'), 0, earnedPts, 1000, '+', '');
+    animateCountUp(document.getElementById('summary-total-pts'), prevPoints, newPoints, 1200, '', ' แต้ม');
 
     // Grand Celebration Confetti
     if (typeof confetti === 'function') {
@@ -335,6 +360,9 @@
         spread: 100,
         origin: { y: 0.6 }
       });
+      setTimeout(() => {
+        confetti({ particleCount: 60, spread: 80, origin: { y: 0.5 } });
+      }, 400);
     }
 
     // 10s Auto countdown back to welcome
@@ -354,7 +382,6 @@
     // Sync to Supabase Cloud asynchronously
     if (supabaseClient && activeStudent && totalItems > 0) {
       try {
-        // 1. Insert PET logs
         const logsToInsert = [];
         for (let i = 0; i < sessionPET; i++) {
           logsToInsert.push({
@@ -377,7 +404,6 @@
           await supabaseClient.from('recycle_logs').insert(logsToInsert);
         }
 
-        // 2. Update Student Points & Bottles
         const updatePayload = {
           current_points: newPoints,
           total_bottles_recycled: newBottles
@@ -396,6 +422,30 @@
         console.error("Cloud sync error:", err);
       }
     }
+  }
+
+  // Easing Count-Up Number Animator
+  function animateCountUp(element, start, end, duration, prefix = '', suffix = '') {
+    if (!element) return;
+    const startTime = performance.now();
+    
+    function updateNumber(now) {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease-out cubic
+      const easedProgress = 1 - Math.pow(1 - progress, 3);
+      const currentVal = Math.round(start + (end - start) * easedProgress);
+
+      element.textContent = `${prefix}${currentVal.toLocaleString()}${suffix}`;
+
+      if (progress < 1) {
+        requestAnimationFrame(updateNumber);
+      } else {
+        element.textContent = `${prefix}${end.toLocaleString()}${suffix}`;
+      }
+    }
+
+    requestAnimationFrame(updateNumber);
   }
 
   function resetToWelcome() {
@@ -447,7 +497,7 @@
         if (done) break;
         buffer += value;
         const lines = buffer.split('\n');
-        buffer = lines.pop(); // Keep partial line
+        buffer = lines.pop();
 
         for (const line of lines) {
           const trimmed = line.trim();
@@ -566,33 +616,6 @@
       resetToWelcome();
     });
 
-    // Sound toggle
-    const btnToggleSound = document.getElementById('btn-toggle-sound');
-    if (btnToggleSound) {
-      btnToggleSound.addEventListener('click', () => {
-        if (window.kioskSound) {
-          const isAudioOn = window.kioskSound.toggleMute();
-          const soundIcon = document.getElementById('sound-icon');
-          if (soundIcon) {
-            soundIcon.setAttribute('data-lucide', isAudioOn ? 'volume-2' : 'volume-x');
-            if (window.lucide) lucide.createIcons();
-          }
-        }
-      });
-    }
-
-    // Fullscreen toggle
-    const btnToggleFullscreen = document.getElementById('btn-toggle-fullscreen');
-    if (btnToggleFullscreen) {
-      btnToggleFullscreen.addEventListener('click', () => {
-        if (!document.fullscreenElement) {
-          document.documentElement.requestFullscreen().catch(() => {});
-        } else {
-          document.exitFullscreen().catch(() => {});
-        }
-      });
-    }
-
     // WebSerial Connect button
     if (btnSerialConnect) {
       btnSerialConnect.addEventListener('click', connectWebSerial);
@@ -634,6 +657,5 @@
   document.addEventListener('DOMContentLoaded', () => {
     loadStudentData();
     bindEvents();
-    if (window.lucide) lucide.createIcons();
   });
 })();

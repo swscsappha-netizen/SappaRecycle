@@ -1,0 +1,6 @@
+{
+  "name": "ตู้รีไซเคิลอัจฉริยะ โรงเรียนสรรพวิทยาคม (Smart Recycling Kiosk)",
+  "description": "ระบบหน้าจอสัมผัสสำหรับตู้รีไซเคิลอัตโนมัติ (Raspberry Pi 4 1024x600 px) โรงเรียนสรรพวิทยาคม พร้อมระบบสะสมแต้ม AI Vision และคาแรกเตอร์มาสคอต",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

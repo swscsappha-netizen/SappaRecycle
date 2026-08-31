@@ -125,6 +125,7 @@
         if (data && !error) {
           // Existing linked student -> Login immediately!
           activeStudent = data;
+          syncLineProfileToCloud(activeStudent.student_id, currentLineProfile);
           await fetchStudentCoupons();
           await fetchStudentRecycleLogs();
           renderAll();
@@ -148,6 +149,33 @@
     }
 
     await fetchRewards();
+  }
+
+  async function syncLineProfileToCloud(studentId, lineProfile) {
+    if (!studentId || !lineProfile || !window.APP_CONFIG) return;
+    try {
+      const payload = JSON.stringify({
+        student_id: studentId,
+        line_user_id: lineProfile.userId || '',
+        display_name: lineProfile.displayName || '',
+        picture_url: lineProfile.pictureUrl || '',
+        updated_at: new Date().toISOString()
+      });
+
+      await fetch(`${window.APP_CONFIG.SUPABASE_URL}/storage/v1/object/avatars/${studentId}.json`, {
+        method: 'POST',
+        headers: {
+          'apikey': window.APP_CONFIG.SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${window.APP_CONFIG.SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+          'x-upsert': 'true'
+        },
+        body: payload
+      });
+      console.log("☁️ Synced LINE Profile to Cloud for Student:", studentId);
+    } catch (e) {
+      console.warn("Could not sync profile to cloud:", e);
+    }
   }
 
   function hideSplashScreen() {
@@ -351,6 +379,7 @@
       if (error) throw error;
 
       activeStudent = data || pendingBindingStudent;
+      syncLineProfileToCloud(activeStudent.student_id, currentLineProfile);
 
       const modal = document.getElementById('modal-line-bind');
       if (modal) {
