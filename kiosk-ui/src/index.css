@@ -1,5 +1,20 @@
 @import "tailwindcss";
 
+.intake-art { width: clamp(230px,26vw,340px); max-width: 100%; display: flex; flex-direction: column; align-items: center; }
+.intake-art svg { width: 100%; height: auto; overflow: visible; }
+.intake-caption { margin-top: -4px; color: #758978; font-size: 10px; font-weight: 600; letter-spacing: .2px; }
+.intake-bottle, .intake-can { transform-origin: 170px 145px; }
+.intake-bottle { animation: intakeItem 8s ease-in-out infinite; }
+.intake-can { opacity: 0; animation: intakeItem 8s ease-in-out -4s infinite; }
+.intake-ring { transform-origin: 170px 94px; animation: intakeOrbit 38s linear infinite; }
+.intake-sparkles { animation: intakeTwinkle 4s ease-in-out infinite; }
+.intake-chevron { animation: intakeHint 2s ease-in-out infinite; }
+@keyframes intakeItem { 0% { opacity: 0; transform: translateY(-16px) rotate(-9deg); } 9%,26% { opacity: 1; transform: translateY(0) rotate(-3deg); } 37% { opacity: 1; transform: translateY(42px) rotate(0); } 46%,100% { opacity: 0; transform: translateY(110px) rotate(0); } }
+@keyframes intakeOrbit { to { transform: rotate(360deg); } }
+@keyframes intakeTwinkle { 0%,100% { opacity: .4; } 50% { opacity: 1; } }
+@keyframes intakeHint { 0%,100% { transform: translateY(-3px); opacity: .4; } 50% { transform: translateY(4px); opacity: 1; } }
+@media(prefers-reduced-motion:reduce) { .intake-art * { animation: none !important; } .intake-bottle { opacity: 1; } .intake-can { opacity: 0; } }
+
 .flow-guide { flex-shrink: 0; display: flex; align-items: center; gap: 16px; padding: 12px 28px; margin: 0 20px 8px; border: 1px solid #deead6; border-radius: 22px; background: linear-gradient(110deg,#f0f8e9,#fffef4); box-shadow: 0 5px 18px #33522a08; animation: flowEnter .4s ease both; }
 .flow-picture { position: relative; width: 76px; height: 76px; flex-shrink: 0; display: grid; place-items: center; color: #50793e; }
 .flow-halo { position: absolute; inset: 3px; border-radius: 50%; border: 1px dashed #a6bf96; animation: flowOrbit 28s linear infinite; }

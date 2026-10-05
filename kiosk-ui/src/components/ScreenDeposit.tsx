@@ -1,3 +1,4 @@
+import { IntakeAnimation } from './IntakeAnimation';
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -100,41 +101,7 @@ export const ScreenDeposit: React.FC<ScreenDepositProps> = ({
                     exit={{ opacity: 0, scale: 0.95 }}
                     className="flex flex-col items-center justify-center gap-3 text-center w-full"
                   >
-                    {/* Visual: Hand Dropping Bottle into Glowing Funnel Slot */}
-                    <div className="relative flex flex-col items-center justify-center pt-2">
-                      {/* Bottle Dropping Animation */}
-                      <motion.div
-                        animate={{ y: [-18, 6, -18], rotate: [-4, 4, -4] }}
-                        transition={{ repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
-                        className="relative z-10 flex flex-col items-center"
-                      >
-                        {/* Cartoon Hand & Bottle Illustration */}
-                        <div className="text-8xl md:text-9xl filter drop-shadow-xl select-none relative">
-                          🧴
-                          {/* Animated Action Arrow pointing down into slot */}
-                          <motion.div
-                            animate={{ y: [0, 8, 0], opacity: [0.7, 1, 0.7] }}
-                            transition={{ repeat: Infinity, duration: 1 }}
-                            className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-emerald-500 text-white p-1 rounded-full shadow-md border border-white"
-                          >
-                            <ArrowDown className="w-5 h-5" />
-                          </motion.div>
-                        </div>
-                      </motion.div>
-
-                      {/* Wide Glowing Intake Portal Slot with Single-Line Text */}
-                      <motion.div
-                        animate={{ scale: [0.97, 1.05, 0.97] }}
-                        transition={{ repeat: Infinity, duration: 1.5 }}
-                        className="px-5 py-1.5 bg-gradient-to-r from-emerald-400 via-emerald-300 to-emerald-400 rounded-full border-3 border-emerald-600 flex items-center justify-center shadow-lg mt-3 z-0"
-                      >
-                        <div className="flex items-center gap-2 text-emerald-950 font-black text-xs md:text-sm tracking-wide whitespace-nowrap">
-                          <ArrowDown className="w-4 h-4 text-emerald-900 animate-bounce shrink-0" />
-                          <span>ช่องรับขวดด้านหน้า</span>
-                          <ArrowDown className="w-4 h-4 text-emerald-900 animate-bounce shrink-0" />
-                        </div>
-                      </motion.div>
-                    </div>
+                    <IntakeAnimation />
 
                     {/* Headline & Clean Subtitle */}
                     <div className="flex flex-col items-center max-w-md mt-1">
