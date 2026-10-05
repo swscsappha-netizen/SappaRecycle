@@ -23,7 +23,7 @@ export const ScreenSummary: React.FC<ScreenSummaryProps> = ({
   onOpenLiffPreview,
 }) => {
   const [countdown, setCountdown] = useState<number>(10);
-  const totalNewBalance = student.pointsBalance + sessionStats.sessionPoints;
+  const totalNewBalance = student.pointsBalance;
 
   // Trigger Victory Fanfare sound & Confetti on mount
   useEffect(() => {

@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Delete, RotateCcw, ArrowRight, UserCheck, Search, ChevronLeft, Check, Sparkles, Database } from 'lucide-react';
 import { Student } from '../types';
-import { lookupStudentById } from '../data/students';
 import { fetchStudentFromSupabase } from '../utils/supabase';
 import { SoundEngine } from '../utils/audio';
 import { EarthMascot, PetBottleMascot, CanMascot } from './mascots/Mascots';
@@ -20,36 +19,28 @@ export const ScreenNumpad: React.FC<ScreenNumpadProps> = ({
   const [liveData, setLiveData] = useState<Student | null>(null);
   const [isSearchingSupabase, setIsSearchingSupabase] = useState<boolean>(false);
 
-  // 1. Instant 0ms synchronous lookup from 2,906 student roster (zero frame delay)
-  const localStudent = useMemo(() => {
-    if (pin.length === 5) {
-      return lookupStudentById(pin);
-    }
-    return null;
-  }, [pin]);
+  const [lookupError, setLookupError] = useState('');
 
   // Combined student: Live Supabase data if matches current PIN, otherwise local record
-  const student = liveData && liveData.id === pin ? liveData : localStudent;
+  const student = liveData && liveData.id === pin ? liveData : null;
 
   // Sound effect & background Supabase live points sync
   useEffect(() => {
     let isCancelled = false;
 
     if (pin.length === 5) {
-      if (localStudent) {
-        SoundEngine.playChime();
-      } else {
-        SoundEngine.playBuzz();
-      }
-
+      setLookupError('');
       // Background Supabase fetch for live points & LINE binding
-      setIsSearchingSupabase(!localStudent);
+      setLiveData(null);
+      setIsSearchingSupabase(true);
       fetchStudentFromSupabase(pin)
         .then(res => {
           if (!isCancelled && res) {
             setLiveData(res);
+            SoundEngine.playChime();
           }
           if (!isCancelled) {
+            if (!res) setLookupError('โหลดข้อมูลจากฐานข้อมูลไม่ได้ กรุณาตรวจสอบรหัสหรือแจ้งเจ้าหน้าที่');
             setIsSearchingSupabase(false);
           }
         })
@@ -67,7 +58,7 @@ export const ScreenNumpad: React.FC<ScreenNumpadProps> = ({
     return () => {
       isCancelled = true;
     };
-  }, [pin, localStudent]);
+  }, [pin]);
 
   const handleKeyPress = (digit: string) => {
     if (pin.length < 5) {
@@ -102,6 +93,7 @@ export const ScreenNumpad: React.FC<ScreenNumpadProps> = ({
       id="screen-numpad"
       className="flex-1 flex flex-col justify-between p-3 md:p-5 relative overflow-hidden bg-gradient-to-b from-[#eaf7ee] via-[#e2f5e7] to-[#d3edd8] select-none"
     >
+      {lookupError && <p role="alert" className="text-center text-red-700 font-bold">{lookupError}</p>}
       {/* Background Soft Hills */}
       <div className="absolute inset-x-0 bottom-0 pointer-events-none z-0">
         <svg

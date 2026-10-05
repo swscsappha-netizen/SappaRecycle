@@ -48,7 +48,7 @@
   async function initAdmin() {
     if (window.supabase && window.APP_CONFIG && window.APP_CONFIG.SUPABASE_URL) {
       try {
-        supabaseClient = window.supabase.createClient(
+        supabaseClient = window.createSecureClient(
           window.APP_CONFIG.SUPABASE_URL,
           window.APP_CONFIG.SUPABASE_ANON_KEY
         );
@@ -75,59 +75,41 @@
     showAdminDashboard();
     bindAdminEvents();
     await loadInitialData();
+    await loadBindingRequests();
   }
 
   async function verifyAdminPermissions() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const paramStudentId = urlParams.get('student_id') || '32650';
+    if (!supabaseClient || !window.liff?.isLoggedIn()) return false;
+    try {
+      const profile = await liff.getProfile();
+      const { data, error } = await supabaseClient.from('students').select('*')
+        .eq('line_user_id', profile.userId).maybeSingle();
+      if (error || !data) return false;
+      currentAdminUser = data;
+      return data.student_id === '32650' && data.is_council_member === true;
+    } catch { return false; }
+  }
 
-    if (supabaseClient) {
-      try {
-        // 1. If logged in via LINE LIFF, verify LINE identity belongs to student 32650
-        if (window.liff && liff.isLoggedIn()) {
-          const profile = await liff.getProfile();
-          const { data, error } = await supabaseClient
-            .from('students')
-            .select('*')
-            .eq('line_user_id', profile.userId)
-            .maybeSingle();
-
-          if (data && !error) {
-            currentAdminUser = data;
-            // Sole Admin Enforcement: Only student 32650 with is_council_member === true
-            return data.student_id === '32650' && data.is_council_member === true;
-          }
-        }
-
-        // 2. Direct student ID lookup
-        const { data, error } = await supabaseClient
-          .from('students')
-          .select('*')
-          .eq('student_id', paramStudentId)
-          .maybeSingle();
-
-        if (data && !error) {
-          currentAdminUser = data;
-          // Sole Admin Enforcement: Only student 32650 with is_council_member === true
-          return data.student_id === '32650' && data.is_council_member === true;
-        }
-      } catch (err) {
-        console.warn("Auth check error:", err);
-      }
-    }
-
-    if (paramStudentId === '32650') {
-      currentAdminUser = {
-        student_id: '32650',
-        full_name: 'นายสุวรรณวัฒน์ ก้องเวหา',
-        room: 'ม.5/10',
-        no: 7,
-        is_council_member: true
+  async function loadBindingRequests() {
+    const { data, error } = await supabaseClient.rpc('list_binding_requests', {});
+    if (error) return;
+    let panel = document.getElementById('binding-requests-panel');
+    if (!panel) { panel=document.createElement('section'); panel.id='binding-requests-panel'; document.getElementById('view-admin-dashboard').appendChild(panel); }
+    panel.replaceChildren();
+    const title=document.createElement('h2'); title.textContent='คำขอผูกบัญชี LINE — ตรวจสอบตัวตนก่อนอนุมัติ'; panel.appendChild(title);
+    const refresh=document.createElement('button'); refresh.textContent='รีเฟรชคำขอ'; refresh.onclick=loadBindingRequests; panel.appendChild(refresh);
+    for (const request of data || []) {
+      const row=document.createElement('div'); row.className='p-4 m-2 border rounded-xl';
+      const text=document.createElement('p'); text.textContent=request.student_id+' '+request.full_name+' '+request.room+' เบอร์ '+request.phone_number; row.appendChild(text);
+      const approve=document.createElement('button'); approve.className='bg-green-700 text-white p-2 rounded-lg'; approve.textContent='ตรวจสอบตัวตนแล้ว อนุมัติ';
+      approve.onclick=async()=>{
+        if(!confirm('ยืนยันว่าตรวจสอบตัวตนของ '+request.full_name+' แล้ว และบัญชี LINE นี้เป็นของนักเรียนจริง?'))return;
+        approve.disabled=true;
+        const result=await supabaseClient.rpc('approve_account_binding',{p_line_user_id:request.line_user_id});
+        if(result.error) { alert(result.error.message); approve.disabled=false; } else await loadBindingRequests();
       };
-      return true;
+      row.appendChild(approve); panel.appendChild(row);
     }
-
-    return false;
   }
 
   function showAccessDeniedScreen() {

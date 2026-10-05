@@ -80,10 +80,17 @@
   async function initApp() {
     bindEvents();
 
+    if (!window.APP_CONFIG?.SUPABASE_ANON_KEY) {
+      hideSplashScreen();
+      document.getElementById('dash-points-balance').textContent = '—';
+      showToast('ยังไม่ได้ตั้งค่าการเชื่อมต่อฐานข้อมูล กรุณาติดต่อผู้ดูแล', 'error');
+      return;
+    }
+
     // 1. Supabase Init
     if (window.supabase && window.APP_CONFIG && window.APP_CONFIG.SUPABASE_URL) {
       try {
-        supabaseClient = window.supabase.createClient(
+        supabaseClient = window.createSecureClient(
           window.APP_CONFIG.SUPABASE_URL,
           window.APP_CONFIG.SUPABASE_ANON_KEY
         );
@@ -130,6 +137,11 @@
           await fetchStudentRecycleLogs();
           renderAll();
           hideSplashScreen();
+        } else if (error) {
+          if (error.message.includes('ยังไม่ได้รับการผูก')) {
+            openLineBindingModal(currentLineProfile); hideSplashScreen(); await lookupStudentForBinding(); return;
+          }
+          throw error;
         } else {
           // First-time user in LINE -> Open Account Binding Modal
           openLineBindingModal(currentLineProfile);
@@ -137,15 +149,13 @@
         }
       } catch (err) {
         console.warn("Error resolving student profile:", err);
-        openLineBindingModal(currentLineProfile);
         hideSplashScreen();
+        showToast('โหลดข้อมูลนักเรียนไม่สำเร็จ กรุณาลองใหม่', 'error');
       }
     } else {
-      // Local development test fallback
-      const urlParams = new URLSearchParams(window.location.search);
-      const targetId = urlParams.get('student_id') || '32650';
-      await loginStudent(targetId);
       hideSplashScreen();
+      showToast('กรุณาเข้าสู่ระบบผ่าน LINE เพื่อดูแต้มสะสม', 'error');
+      return;
     }
 
     await fetchRewards();
@@ -153,29 +163,7 @@
 
   async function syncLineProfileToCloud(studentId, lineProfile) {
     if (!studentId || !lineProfile || !window.APP_CONFIG) return;
-    try {
-      const payload = JSON.stringify({
-        student_id: studentId,
-        line_user_id: lineProfile.userId || '',
-        display_name: lineProfile.displayName || '',
-        picture_url: lineProfile.pictureUrl || '',
-        updated_at: new Date().toISOString()
-      });
-
-      await fetch(`${window.APP_CONFIG.SUPABASE_URL}/storage/v1/object/avatars/${studentId}.json`, {
-        method: 'POST',
-        headers: {
-          'apikey': window.APP_CONFIG.SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${window.APP_CONFIG.SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-          'x-upsert': 'true'
-        },
-        body: payload
-      });
-      console.log("☁️ Synced LINE Profile to Cloud for Student:", studentId);
-    } catch (e) {
-      console.warn("Could not sync profile to cloud:", e);
-    }
+    // Profile data comes from LINE; browser writes to public storage are disabled.
   }
 
   function hideSplashScreen() {
@@ -208,69 +196,12 @@
     }
   }
 
-  async function lookupStudentForBinding(studentId) {
-    const previewBox = document.getElementById('line-bind-preview-box');
-    const previewName = document.getElementById('line-bind-preview-name');
-    const previewRoom = document.getElementById('line-bind-preview-room');
-
-    if (!studentId || studentId.length !== 5 || !supabaseClient) {
-      if (previewBox) previewBox.classList.add('hidden');
-      pendingBindingStudent = null;
-      return;
-    }
-
-    try {
-      const { data, error } = await supabaseClient
-        .from('students')
-        .select('*')
-        .eq('student_id', studentId)
-        .maybeSingle();
-
-      const confirmBtn = document.getElementById('btn-confirm-line-bind');
-
-      if (data && !error) {
-        if (data.line_user_id && currentLineProfile && data.line_user_id !== currentLineProfile.userId) {
-          pendingBindingStudent = null;
-          if (previewName) previewName.innerHTML = `<span class="text-error font-black">⚠️ รหัสนักเรียนนี้ถูกผูกบัญชี LINE ไปแล้ว</span>`;
-          if (previewRoom) previewRoom.innerHTML = `<span class="text-on-surface-variant text-[11px] font-bold">หากมีคนแอบอ้างหรือทำโทรศัพท์หาย กรุณาติดต่อสภานักเรียนเพื่อขอปลดล็อก</span>`;
-          if (previewBox) {
-            previewBox.classList.remove('hidden');
-            previewBox.classList.add('flex');
-          }
-          if (confirmBtn) {
-            confirmBtn.disabled = true;
-            confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
-          }
-          return;
-        }
-
-        if (confirmBtn) {
-          confirmBtn.disabled = false;
-          confirmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-        }
-        pendingBindingStudent = data;
-        if (previewName) previewName.textContent = `✅ ${data.full_name}`;
-        if (previewRoom) previewRoom.textContent = `ชั้น ${data.room} (เลขที่ ${data.no || '-'})`;
-        if (previewBox) {
-          previewBox.classList.remove('hidden');
-          previewBox.classList.add('flex');
-        }
-      } else {
-        pendingBindingStudent = null;
-        if (previewName) previewName.textContent = '❌ ไม่พบรหัสนักเรียนนี้ในระบบ';
-        if (previewRoom) previewRoom.textContent = 'กรุณาตรวจสอบรหัส 5 หลักอีกครั้ง';
-        if (previewBox) {
-          previewBox.classList.remove('hidden');
-          previewBox.classList.add('flex');
-        }
-        if (confirmBtn) {
-          confirmBtn.disabled = true;
-          confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        }
-      }
-    } catch (err) {
-      console.warn("Lookup error:", err);
-    }
+  async function lookupStudentForBinding() {
+    pendingBindingStudent = null;
+    const preview = document.getElementById('line-bind-preview-box');
+    if (preview) preview.classList.add('hidden');
+    const button = document.getElementById('btn-confirm-line-bind');
+    if (button) { button.disabled = false; button.textContent = 'ส่งคำขอผูกบัญชีให้เจ้าหน้าที่ตรวจสอบ'; }
   }
 
   // --------------------------------------------------------------------------
@@ -334,81 +265,32 @@
   }
 
   async function confirmLineBinding() {
-    const studentIdInput = document.getElementById('line-bind-student-id').value.trim();
-    const phoneInput = document.getElementById('line-bind-phone').value.trim();
-    const confirmBtn = document.getElementById('btn-confirm-line-bind');
-
-    if (!studentIdInput || studentIdInput.length !== 5) {
-      showToast('กรุณาระบุรหัสนักเรียน 5 หลักให้ถูกต้อง', 'warning');
-      return;
+    const studentId = document.getElementById('line-bind-student-id').value.trim();
+    const phone = document.getElementById('line-bind-phone').value.trim();
+    const button = document.getElementById('btn-confirm-line-bind');
+    if (!/^\d{5}$/.test(studentId) || !/^0\d{9}$/.test(phone)) {
+      showToast('กรุณากรอกรหัสนักเรียน 5 หลักและเบอร์โทร 10 หลัก', 'error'); return;
     }
-
-    if (!pendingBindingStudent) {
-      await lookupStudentForBinding(studentIdInput);
-      if (!pendingBindingStudent) {
-        showToast('ไม่พบรหัสนักเรียนนี้ในฐานข้อมูลโรงเรียนสรรพวิทยาคม', 'error');
-        return;
-      }
-    }
-
-    if (!currentLineProfile || !supabaseClient) {
-      showToast('ไม่พบการเชื่อมต่อ LINE Account', 'error');
-      return;
-    }
-
-    if (confirmBtn) {
-      confirmBtn.innerHTML = 'กำลังผูกบัญชี... ⏳';
-      confirmBtn.disabled = true;
-    }
-
-    try {
-      const updatePayload = {
-        line_user_id: currentLineProfile.userId
-      };
-      if (phoneInput && phoneInput.length >= 9) {
-        updatePayload.phone_number = phoneInput;
-      }
-
-      const { data, error } = await supabaseClient
-        .from('students')
-        .update(updatePayload)
-        .eq('student_id', pendingBindingStudent.student_id)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      activeStudent = data || pendingBindingStudent;
-      syncLineProfileToCloud(activeStudent.student_id, currentLineProfile);
-
-      const modal = document.getElementById('modal-line-bind');
-      if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-      }
-
-      if (typeof window.confetti === 'function') {
-        window.confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
-      }
-
-      showBindingSuccessModal(activeStudent);
-      await fetchStudentCoupons();
-      await fetchStudentRecycleLogs();
-      renderAll();
-    } catch (e) {
-      console.error("Binding error:", e);
-      showToast('เกิดข้อผิดพลาดในการผูกบัญชี: ' + (e.message || e), 'error');
-    } finally {
-      if (confirmBtn) {
-        confirmBtn.innerHTML = 'ยืนยันผูกบัญชี LINE เข้าใช้งาน 🔗';
-        confirmBtn.disabled = false;
-      }
-    }
+    button.disabled = true;
+    const { error } = await supabaseClient.rpc('request_account_binding', { p_student_id: studentId, p_phone: phone });
+    button.disabled = false;
+    if (error) { showToast(error.message, 'error'); return; }
+    button.textContent = 'ส่งคำขอแล้ว — รอเจ้าหน้าที่ตรวจสอบตัวตน';
+    showToast('ส่งคำขอแล้ว กรุณาติดต่อเจ้าหน้าที่เพื่อยืนยันตัวตน จากนั้นเปิดเว็บอีกครั้ง', 'info', 12000);
   }
 
   // --------------------------------------------------------------------------
   // 2. Data Fetching
   // --------------------------------------------------------------------------
+  async function refreshStudentBalance() {
+    if (!activeStudent || !supabaseClient) throw new Error('กรุณาเข้าสู่ระบบก่อน');
+    const { data, error } = await supabaseClient.from('students')
+      .select('*').eq('student_id', activeStudent.student_id).single();
+    if (error || !data) throw new Error('โหลดแต้มล่าสุดไม่สำเร็จ');
+    activeStudent = data;
+    renderAll();
+  }
+
   async function loginStudent(studentId) {
     if (supabaseClient) {
       try {
@@ -430,18 +312,7 @@
       }
     }
 
-    activeStudent = {
-      student_id: studentId,
-      full_name: studentId === '32650' ? 'นายสุวรรณวัฒน์ ก้องเวหา' : 'เด็กชายชาญนนท์ -',
-      room: studentId === '32650' ? 'ม.5/10' : 'ม.1/1',
-      no: studentId === '32650' ? 7 : 1,
-      phone_number: null,
-      current_points: 0,
-      total_bottles_recycled: 0,
-      is_council_member: studentId === '32650'
-    };
-
-    renderAll();
+    showToast('โหลดบัญชีนักเรียนไม่สำเร็จ กรุณาลองใหม่', 'error');
   }
 
   async function fetchRewards() {
@@ -839,22 +710,10 @@
           p_coupon_code: uniqueToken
         });
 
-        if (error) {
-          await supabaseClient.from('coupons').insert({
-            student_id: activeStudent.student_id,
-            reward_id: reward.reward_id,
-            coupon_code: uniqueToken,
-            status: 'ACTIVE'
-          });
-          await supabaseClient.from('students').update({
-            current_points: activeStudent.current_points - reward.points_required
-          }).eq('student_id', activeStudent.student_id);
-          await supabaseClient.from('rewards').update({
-            stock_quantity: Math.max(0, reward.stock_quantity - 1)
-          }).eq('reward_id', reward.reward_id);
-        }
+        if (error) throw new Error(error.message);
       } catch (err) {
-        console.error("Redeem error:", err);
+        showToast(err.message || "แลกรางวัลไม่สำเร็จ", "error");
+        return;
       }
     }
 
@@ -1007,16 +866,7 @@
         p_council_line_id: activeStudent.student_id
       });
 
-      if (error) {
-        await supabaseClient
-          .from('coupons')
-          .update({
-            status: 'REDEEMED',
-            redeemed_at: new Date().toISOString(),
-            redeemed_by_line_id: activeStudent.student_id
-          })
-          .eq('coupon_code', pendingVerifyCoupon.coupon_code);
-      }
+      if (error) throw new Error(error.message);
 
       document.getElementById('modal-council-verify').classList.add('hidden');
       document.getElementById('modal-council-verify').classList.remove('flex');
@@ -1370,8 +1220,18 @@
 
     document.getElementById('btn-stat-room')?.addEventListener('click', () => switchTab('tab-profile'));
     document.getElementById('btn-refresh-history')?.addEventListener('click', async () => {
-      await fetchStudentRecycleLogs();
-      alert('รีเฟรชประวัติการหยอดขวดเรียบร้อยแล้ว');
+      try {
+        await refreshStudentBalance();
+        await fetchStudentRecycleLogs();
+        showToast('อัปเดตแต้มสะสมล่าสุดแล้ว', 'success');
+      } catch (error) {
+        showToast(error.message || 'รีเฟรชข้อมูลไม่สำเร็จ', 'error');
+      }
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && activeStudent) {
+        refreshStudentBalance().catch(() => showToast('โหลดแต้มล่าสุดไม่สำเร็จ กรุณากดรีเฟรช', 'error'));
+      }
     });
 
     // 4. Home Category pills

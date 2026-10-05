@@ -15,6 +15,8 @@ interface ScreenDepositProps {
   hardwareState: HardwareState;
   onItemDeposited: (item: DepositItem) => void;
   onFinishDeposit: () => void;
+  isSaving: boolean;
+  saveError: string;
   onSimulateConveyorState: (status: HardwareState['conveyorStatus']) => void;
 }
 
@@ -24,6 +26,8 @@ export const ScreenDeposit: React.FC<ScreenDepositProps> = ({
   hardwareState,
   onItemDeposited,
   onFinishDeposit,
+  isSaving,
+  saveError,
   onSimulateConveyorState,
 }) => {
   const currentStage = hardwareState.sensorStage || 'WAITING_OBJECT';
@@ -495,14 +499,15 @@ export const ScreenDeposit: React.FC<ScreenDepositProps> = ({
             </p>
           </div>
 
-          {/* Finish Button (#btn-finish-deposit) - Perfectly Unclipped with Safe Margins */}
+          {saveError && <p role="alert" className="text-red-700 font-bold text-sm">{saveError}</p>}
           <button
             id="btn-finish-deposit"
             onClick={handleFinish}
+            disabled={isSaving || hardwareState.sensorTriggered || !!saveError}
             className="w-full py-3 md:py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-sm md:text-base shadow-3d btn-press flex items-center justify-center gap-2 border border-emerald-400/40 active:scale-98 transition-all cursor-pointer shrink-0"
           >
             <CheckCircle className="w-5 h-5 text-white" />
-            <span>เสร็จสิ้นและรับแต้ม (+{sessionStats.sessionPoints} แต้ม)</span>
+            <span>{isSaving ? 'กำลังบันทึกแต้ม...' : `เสร็จสิ้นและรับแต้ม (+${sessionStats.sessionPoints} แต้ม)`}</span>
             <ArrowRight className="w-5 h-5 text-white" />
           </button>
 

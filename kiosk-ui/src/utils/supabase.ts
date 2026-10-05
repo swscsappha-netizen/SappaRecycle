@@ -1,17 +1,21 @@
-import { createClient } from '@supabase/supabase-js';
 import { Student, SessionStats } from '../types';
-import { lookupStudentById as localLookup } from '../data/students';
 
-const SUPABASE_URL = "https://socuwjwndvbfjxafnolx.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNvY3V3anduZHZiZmp4YWZub2x4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4ODAwNjY2NSwiZXhwIjoyMTAzNTgyNjY1fQ.FNKtbWt7e5fPF0WEpeXywJ-GvFsmEv6LfmRU7rdXqe4";
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const browserConfig = (window as any).APP_CONFIG;
+const publicKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || browserConfig?.SUPABASE_ANON_KEY || '';
+const url = import.meta.env.VITE_SUPABASE_URL || browserConfig?.SUPABASE_URL || 'https://socuwjwndvbfjxafnolx.supabase.co';
+if (publicKey.startsWith('sb_secret_')) throw new Error('Secret keys cannot be used in a browser');
+if (publicKey.startsWith('eyJ')) {
+  const payload = JSON.parse(atob(publicKey.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+  if (payload.role !== 'anon') throw new Error('Only anon keys may be used in a browser');
+}
+export const supabase = publicKey ? (window as any).createSecureClient(url, publicKey) : null;
 
 /**
  * Fetch student profile directly from Supabase Cloud (schema: student_id, full_name, room, no, phone_number, current_points)
  */
 export async function fetchStudentFromSupabase(studentId: string): Promise<Student | null> {
-  if (!studentId || studentId.length !== 5) return null;
+  if (!studentId || studentId.length !== 5 || !supabase) return null;
 
   try {
     const { data, error } = await supabase
@@ -21,8 +25,8 @@ export async function fetchStudentFromSupabase(studentId: string): Promise<Stude
       .maybeSingle();
 
     if (error) {
-      console.warn('[Supabase] Fetch student error, using fallback:', error.message);
-      return localLookup(studentId);
+      console.warn('[Supabase] Fetch student failed:', error.message);
+      return null;
     }
 
     if (data) {
@@ -76,10 +80,10 @@ export async function fetchStudentFromSupabase(studentId: string): Promise<Stude
       };
     }
 
-    return localLookup(studentId);
+    return null;
   } catch (err) {
     console.error('[Supabase] Network exception:', err);
-    return localLookup(studentId);
+    return null;
   }
 }
 
@@ -87,6 +91,7 @@ export async function fetchStudentFromSupabase(studentId: string): Promise<Stude
  * Update student phone number directly in Supabase table `students` (column: phone_number)
  */
 export async function updateStudentPhoneInSupabase(studentId: string, phone: string): Promise<boolean> {
+  if (!supabase) return false;
   try {
     const { error } = await supabase
       .from('students')
@@ -108,52 +113,26 @@ export async function updateStudentPhoneInSupabase(studentId: string, phone: str
  * Record completed deposit session & increment student points in Supabase
  */
 export async function recordDepositSessionInSupabase(
-  student: Student,
-  sessionStats: SessionStats
-): Promise<boolean> {
-  try {
-    // 1. Try atomic PostgreSQL RPC function credit_recycle_batch
-    const { data: rpcData, error: rpcError } = await supabase.rpc('credit_recycle_batch', {
-      p_student_id: student.id,
-      p_pet_count: sessionStats.petCount,
-      p_can_count: sessionStats.canCount,
-    });
-
-    if (!rpcError) {
-      console.log('[Supabase] Credited points successfully via RPC:', rpcData);
-      return true;
-    }
-
-    console.warn('[Supabase] RPC not available, updating table directly:', rpcError.message);
-
-    const newTotalPoints = student.pointsBalance + sessionStats.sessionPoints;
-    const newTotalItems = student.bottlesDeposited + sessionStats.petCount + sessionStats.canCount;
-
-    // 2. Direct Student Update
-    await supabase
-      .from('students')
-      .update({
-        current_points: newTotalPoints,
-        total_bottles_recycled: newTotalItems,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('student_id', student.id);
-
-    // 3. Insert into recycle_logs
-    if (sessionStats.items.length > 0) {
-      const logs = sessionStats.items.map(item => ({
-        student_id: student.id,
-        item_type: item.type,
-        points_earned: item.points,
-      }));
-      await supabase.from('recycle_logs').insert(logs);
-    }
-
-    return true;
-  } catch (err) {
-    console.error('[Supabase] Record session exception:', err);
-    return false;
+  student: Student, sessionStats: SessionStats, requestId: string
+): Promise<{ current_points: number; total_bottles_recycled: number }> {
+  if (!supabase) throw new Error('Database connection is not configured');
+  if (!Number.isSafeInteger(sessionStats.petCount) || !Number.isSafeInteger(sessionStats.canCount) ||
+      sessionStats.petCount < 0 || sessionStats.canCount < 0) throw new Error('Invalid deposit counts');
+  if (sessionStats.petCount + sessionStats.canCount === 0) {
+    return { current_points: student.pointsBalance, total_bottles_recycled: student.bottlesDeposited + student.cansDeposited };
   }
+  const { data, error } = await supabase.rpc('credit_recycle_batch', {
+    p_student_id: student.id,
+    p_request_id: requestId,
+    p_pet_count: sessionStats.petCount,
+    p_can_count: sessionStats.canCount,
+  });
+  if (error || data?.success !== true || data.student_id !== student.id ||
+      !Number.isSafeInteger(data.current_points) || data.current_points < 0 ||
+      !Number.isSafeInteger(data.total_bottles_recycled) || data.total_bottles_recycled < 0) {
+    throw new Error('Deposit could not be confirmed');
+  }
+  return data;
 }
 
 /**

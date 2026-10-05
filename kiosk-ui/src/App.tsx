@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ScreenType, Student, SessionStats, HardwareState, DepositItem } from './types';
 import { Header } from './components/Header';
@@ -15,6 +15,7 @@ import {
   updateStudentPhoneInSupabase,
   recordDepositSessionInSupabase,
   SerialHardwareManager,
+  supabase,
 } from './utils/supabase';
 
 export default function App() {
@@ -23,6 +24,36 @@ export default function App() {
   const [showPhoneModal, setShowPhoneModal] = useState<boolean>(false);
   const [showLiffModal, setShowLiffModal] = useState<boolean>(false);
   const [showGuideModal, setShowGuideModal] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const savingRef = useRef(false);
+  const sessionIdRef = useRef(crypto.randomUUID());
+  const screenRef = useRef(currentScreen);
+  const sensorBusyRef = useRef(false);
+  const [staffReady, setStaffReady] = useState(false);
+  const [staffError, setStaffError] = useState('');
+  const [authBusy, setAuthBusy] = useState(false);
+  useEffect(() => { screenRef.current = currentScreen; }, [currentScreen]);
+
+  const authenticateStaff = async () => {
+    setAuthBusy(true);
+    setStaffError('');
+    try {
+      const liff = (window as any).liff;
+      await liff.init({ liffId: (window as any).APP_CONFIG.LIFF_ID });
+      if (!liff.isLoggedIn()) {
+        liff.login({ redirectUri: window.location.href });
+        return;
+      }
+      const profile = await liff.getProfile();
+      const { data, error } = await supabase.from('students').select('*')
+        .eq('line_user_id', profile.userId).maybeSingle();
+      if (error || !data?.is_council_member) throw new Error('ต้องใช้บัญชี LINE ของเจ้าหน้าที่ที่มีสิทธิ์');
+      setStaffReady(true);
+    } catch (error) {
+      setStaffError(error instanceof Error ? error.message : 'ยืนยันบัญชีเจ้าหน้าที่ไม่สำเร็จ');
+    } finally { setAuthBusy(false); }
+  };
 
   // Session Deposit Statistics
   const [sessionStats, setSessionStats] = useState<SessionStats>({
@@ -54,26 +85,11 @@ export default function App() {
     }
   }, [hardwareState.petBinPercent, hardwareState.canBinPercent]);
 
-  // Global Hardware Sensor & Keyboard Listener (P = PET, C = CAN, R = REJECT)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (currentScreen === 'deposit') {
-        if (e.code === 'KeyP') {
-          handleTriggerDeposit('PET', 'ขวดพลาสติกใส PET', '💧');
-        } else if (e.code === 'KeyC') {
-          handleTriggerDeposit('CAN', 'กระป๋องอะลูมิเนียม CAN', '🥫');
-        } else if (e.code === 'KeyR') {
-          handleTriggerDeposit('REJECT', 'ขยะแปลกปลอม', '🚫');
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentScreen]);
-
   // Handle flow start from welcome screen
   const handleStartFlow = () => {
+    if (!staffReady) return;
+    sessionIdRef.current = crypto.randomUUID();
+    setSaveError('');
     if (hardwareState.petBinPercent >= 95 || hardwareState.canBinPercent >= 95) {
       setCurrentScreen('bin_full');
       return;
@@ -103,9 +119,13 @@ export default function App() {
   // Save phone number directly to Supabase Cloud
   const handleSavePhone = async (phone: string) => {
     if (currentStudent) {
+      const saved = await updateStudentPhoneInSupabase(currentStudent.id, phone);
+      if (!saved) {
+        window.alert('บันทึกเบอร์โทรไม่สำเร็จ กรุณาลองใหม่');
+        return;
+      }
       const updated = { ...currentStudent, phone };
       setCurrentStudent(updated);
-      await updateStudentPhoneInSupabase(currentStudent.id, phone);
     }
     setShowPhoneModal(false);
     setShowGuideModal(true);
@@ -123,6 +143,8 @@ export default function App() {
     brandName?: string,
     brandIcon?: string
   ) => {
+    if (savingRef.current || sensorBusyRef.current || screenRef.current !== 'deposit') return;
+    sensorBusyRef.current = true;
     const points = type === 'PET' ? 10 : type === 'CAN' ? 20 : 0;
     const label = type === 'PET' ? 'ขวดพลาสติกใส PET' : type === 'CAN' ? 'กระป๋องอะลูมิเนียม CAN' : 'ขยะแปลกปลอม';
     const confidence = +(98.0 + Math.random() * 1.5).toFixed(1);
@@ -186,6 +208,7 @@ export default function App() {
 
     // Stage 4: Reset back to waiting for next object (t = 3400ms)
     setTimeout(() => {
+      sensorBusyRef.current = false;
       setHardwareState(prev => ({
         ...prev,
         sensorStage: 'WAITING_OBJECT',
@@ -197,23 +220,30 @@ export default function App() {
 
   // Finish session and sync directly with Supabase Cloud
   const handleFinishDeposit = async () => {
-    if (currentStudent) {
-      const updated = {
+    if (!currentStudent || savingRef.current || hardwareState.sensorTriggered) return;
+    savingRef.current = true;
+    setIsSaving(true);
+    setSaveError('');
+    try {
+      const result = await recordDepositSessionInSupabase(currentStudent, sessionStats, sessionIdRef.current);
+      setCurrentStudent({
         ...currentStudent,
-        pointsBalance: currentStudent.pointsBalance + sessionStats.sessionPoints,
+        pointsBalance: result.current_points,
         bottlesDeposited: currentStudent.bottlesDeposited + sessionStats.petCount,
         cansDeposited: currentStudent.cansDeposited + sessionStats.canCount,
-      };
-      setCurrentStudent(updated);
-
-      // Sync with Supabase Cloud
-      await recordDepositSessionInSupabase(currentStudent, sessionStats);
+      });
+      setCurrentScreen('summary');
+    } catch {
+      setSaveError('ยังยืนยันการบันทึกแต้มไม่ได้ กรุณาติดต่อเจ้าหน้าที่ก่อนเริ่มรอบใหม่');
+    } finally {
+      savingRef.current = false;
+      setIsSaving(false);
     }
-    setCurrentScreen('summary');
   };
 
   // Reset to welcome
   const handleResetToWelcome = () => {
+    if (savingRef.current || sensorBusyRef.current) return;
     setCurrentStudent(null);
     setShowPhoneModal(false);
     setCurrentScreen('welcome');
@@ -243,13 +273,28 @@ export default function App() {
             setHardwareState(prev => ({ ...prev, audioMuted: !prev.audioMuted }));
             SoundEngine.setMuted(!hardwareState.audioMuted);
           }}
-          onResetSession={currentScreen !== 'welcome' && currentScreen !== 'bin_full' ? handleResetToWelcome : undefined}
-          showReset={currentScreen !== 'welcome' && currentScreen !== 'bin_full'}
+          onResetSession={currentScreen !== 'welcome' && currentScreen !== 'bin_full' && !isSaving ? handleResetToWelcome : undefined}
+          showReset={currentScreen !== 'welcome' && currentScreen !== 'bin_full' && !isSaving}
           onOpenGuide={currentScreen !== 'bin_full' ? () => setShowGuideModal(true) : undefined}
         />
 
         {/* Dynamic Screen View with Motion Transitions */}
         <main className="flex-1 flex flex-col overflow-hidden relative">
+          {!staffReady && (
+            <div className="absolute inset-0 z-50 bg-white flex flex-col items-center justify-center gap-4 p-6 text-center">
+              <h2 className="text-xl font-bold">ยืนยันบัญชีเจ้าหน้าที่เพื่อเปิดใช้งานตู้</h2>
+              <button disabled={authBusy} onClick={authenticateStaff} className="bg-emerald-600 text-white rounded-xl px-6 py-3 font-bold">
+                {authBusy ? 'กำลังตรวจสอบ...' : 'เข้าสู่ระบบด้วย LINE'}
+              </button>
+              {staffError && <p role="alert" className="text-red-700">{staffError}</p>}
+            </div>
+          )}
+          {staffReady && currentScreen === 'welcome' && !SerialHardwareManager.getStatus() && (
+            <button className="z-40 bg-amber-100 px-4 py-2 font-bold" onClick={async () => {
+              const connected = await SerialHardwareManager.connect(event => handleTriggerDeposit(event.type, event.brand));
+              if (!connected) setStaffError('เชื่อมต่ออุปกรณ์ตู้ไม่สำเร็จ');
+            }}>เชื่อมต่ออุปกรณ์ตู้ {staffError}</button>
+          )}
           <AnimatePresence mode="wait">
             {currentScreen === 'welcome' && (
               <motion.div
@@ -300,6 +345,8 @@ export default function App() {
                     handleTriggerDeposit(item.type, item.brand, item.brandIcon);
                   }}
                   onFinishDeposit={handleFinishDeposit}
+                  isSaving={isSaving}
+                  saveError={saveError}
                   onSimulateConveyorState={status =>
                     setHardwareState(prev => ({ ...prev, conveyorStatus: status }))
                   }
