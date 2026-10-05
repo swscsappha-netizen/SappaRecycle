@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ScreenType, Student, SessionStats, HardwareState, DepositItem } from './types';
 import { Header } from './components/Header';
+import { FlowGuide } from './components/FlowGuide';
 import { ScreenWelcome } from './components/ScreenWelcome';
 import { ScreenNumpad } from './components/ScreenNumpad';
 import { ModalPhone } from './components/ModalPhone';
@@ -278,6 +279,7 @@ export default function App() {
           onOpenGuide={currentScreen !== 'bin_full' ? () => setShowGuideModal(true) : undefined}
         />
 
+        {staffReady && <FlowGuide screen={currentScreen} stage={hardwareState.sensorStage} saving={isSaving} error={saveError} phone={showPhoneModal} guide={showGuideModal} />}
         {/* Dynamic Screen View with Motion Transitions */}
         <main className="flex-1 flex flex-col overflow-hidden relative">
           {!staffReady && (

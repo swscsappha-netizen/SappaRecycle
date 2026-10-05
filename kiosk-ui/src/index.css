@@ -1,1 +1,38 @@
 @import "tailwindcss";
+
+.flow-guide { flex-shrink: 0; display: flex; align-items: center; gap: 16px; padding: 12px 28px; margin: 0 20px 8px; border: 1px solid #deead6; border-radius: 22px; background: linear-gradient(110deg,#f0f8e9,#fffef4); box-shadow: 0 5px 18px #33522a08; animation: flowEnter .4s ease both; }
+.flow-picture { position: relative; width: 76px; height: 76px; flex-shrink: 0; display: grid; place-items: center; color: #50793e; }
+.flow-halo { position: absolute; inset: 3px; border-radius: 50%; border: 1px dashed #a6bf96; animation: flowOrbit 28s linear infinite; }
+.flow-symbol { animation: flowFloat 3s ease-in-out infinite; }
+.flow-spark { position: absolute; right: 0; top: 6px; color: #b89c42; font-size: 18px; animation: flowFloat 3s ease-in-out -1s infinite; }
+.flow-bottle { position: absolute; height: 47px; width: 28px; top: 9px; animation: bottleDrop 2.8s ease-in-out infinite; }
+.flow-slot { position: absolute; bottom: 12px; left: 14px; right: 14px; height: 7px; border-radius: 50%; background: #3e663c; box-shadow: 0 5px 0 #bfd4b6; }
+.flow-scanline { display: none; position: absolute; left: 12px; right: 12px; height: 2px; background: #66af67; box-shadow: 0 0 8px #76bc75; animation: flowScan 1.8s ease-in-out infinite; }
+.flow-scan .flow-scanline { display: block; }
+.flow-scan .flow-bottle { animation: flowFloat 3s ease-in-out infinite; }
+.flow-saving .flow-symbol { animation: flowOrbit 1.4s linear infinite; }
+.flow-done .flow-symbol { animation: flowFloat 4s ease-in-out infinite; }
+.flow-blocked { background: #fff8ee; border-color: #edd8b8; }
+.flow-blocked .flow-symbol { color: #9d692b; animation: none; }
+.flow-copy { flex: 1; min-width: 0; }
+.flow-kicker { font-size: 10px; font-weight: 700; letter-spacing: .7px; color: #7c956d; }
+.flow-copy h2 { font-size: clamp(14px,1.5vw,21px); font-weight: 800; color: #2c4928; line-height: 1.45; }
+.flow-copy p { font-size: clamp(10px,1vw,13px); color: #728069; line-height: 1.6; }
+.flow-steps { display: flex; gap: 16px; list-style: none; }
+.flow-steps li { display: flex; flex-direction: column; align-items: center; gap: 5px; color: #9ba694; }
+.flow-steps li > span { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 1px solid #dfe6d8; font-weight: 700; font-size: 11px; }
+.flow-steps small { font-size: 10px; white-space: nowrap; }
+.flow-steps .is-current { color: #3c6532; font-weight: 700; }
+.flow-steps .is-current > span { background: #50793e; color: #fff; border-color: #50793e; box-shadow: 0 0 0 4px #50793e12; }
+.flow-steps .is-complete > span { background: #e0edd7; color: #50793e; border-color: transparent; }
+@keyframes bottleDrop { 0%,100% { transform: translateY(-4px) rotate(-9deg); } 50%,70% { transform: translateY(15px) rotate(0); } }
+@keyframes flowFloat { 0%,100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-5px) rotate(3deg); } }
+@keyframes flowOrbit { to { transform: rotate(360deg); } }
+@keyframes flowScan { 0%,100% { top: 15px; } 50% { top: 55px; } }
+@keyframes flowEnter { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+@media(max-width:700px) { .flow-guide { margin: 0 10px 6px; padding: 8px 12px; gap: 10px; } .flow-picture { width: 54px; height: 62px; } .flow-steps { gap: 6px; } .flow-steps small { display: none; } .flow-steps li > span { width: 22px; height: 22px; } }
+@media(max-height:650px) { .flow-guide { padding-top: 6px; padding-bottom: 6px; } .flow-picture { height: 52px; width: 58px; } .flow-copy p { font-size: 10px; } }
+.guide-water { animation: waterPour 2.6s ease-in-out infinite; }
+.guide-single { animation: flowFloat 3s ease-in-out infinite; }
+@keyframes waterPour { 0%,100% { transform: rotate(-15deg) translateY(-2px); } 50% { transform: rotate(15deg) translateY(4px); } }
+@media(prefers-reduced-motion:reduce) { .flow-guide, .flow-guide *, .guide-water, .guide-single { animation: none !important; transition: none !important; } }

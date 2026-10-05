@@ -64,14 +64,14 @@ export const GuideModal: React.FC<GuideModalProps> = ({
         <div className="grid grid-cols-3 gap-2.5">
           <div className="bg-sky-50/80 rounded-2xl p-2.5 border border-sky-200/80 text-center flex flex-col items-center justify-between">
             <div className="w-7 h-7 rounded-full bg-sky-500 text-white text-xs font-black flex items-center justify-center mb-1">1</div>
-            <Droplets className="w-6 h-6 text-sky-600 my-0.5" />
+            <Droplets className="guide-water w-6 h-6 text-sky-600 my-0.5" />
             <h4 className="text-xs font-black text-sky-900">เทน้ำออกให้หมด</h4>
             <p className="text-[10px] text-slate-500 font-medium mt-0.5">ขวดสะอาด ไม่เปื้อนเศษอาหาร</p>
           </div>
 
           <div className="bg-emerald-50/80 rounded-2xl p-2.5 border border-emerald-200/80 text-center flex flex-col items-center justify-between">
             <div className="w-7 h-7 rounded-full bg-emerald-500 text-white text-xs font-black flex items-center justify-center mb-1">2</div>
-            <Sparkles className="w-6 h-6 text-emerald-600 my-0.5" />
+            <Sparkles className="guide-single w-6 h-6 text-emerald-600 my-0.5" />
             <h4 className="text-xs font-black text-emerald-900">หยอดทีละ 1 ชิ้น</h4>
             <p className="text-[10px] text-slate-500 font-medium mt-0.5">วางลงในช่องรับตรงกลาง</p>
           </div>
