@@ -109,12 +109,9 @@ export default function App() {
   // When student is verified in numpad
   const handleStudentVerified = (student: Student) => {
     setCurrentStudent(student);
-    // If student has no phone, trigger modal per ADR-0001
-    if (!student.phone || student.phone.trim() === '') {
-      setShowPhoneModal(true);
-    } else {
-      setShowGuideModal(true);
-    }
+    setShowPhoneModal(false);
+    setShowGuideModal(false);
+    setCurrentScreen('deposit');
   };
 
   // Save phone number directly to Supabase Cloud
