@@ -120,6 +120,18 @@
       }
     }
 
+    if (liffLoggedIn && currentLineProfile && supabaseClient) {
+      try {
+        const verified = await window.schoolAuth.verify();
+        if (!verified) {
+          openLineBindingModal(currentLineProfile); hideSplashScreen();
+          await lookupStudentForBinding(); return;
+        }
+      } catch (error) {
+        openLineBindingModal(currentLineProfile); hideSplashScreen();
+        await lookupStudentForBinding(); showToast(error.message, 'error', 10000); return;
+      }
+    }
     // 3. Resolve Authenticated Student Identity
     if (liffLoggedIn && currentLineProfile && supabaseClient) {
       try {
@@ -201,7 +213,7 @@
     const preview = document.getElementById('line-bind-preview-box');
     if (preview) preview.classList.add('hidden');
     const button = document.getElementById('btn-confirm-line-bind');
-    if (button) { button.disabled = false; button.textContent = 'ส่งคำขอผูกบัญชีให้เจ้าหน้าที่ตรวจสอบ'; }
+    if (button) { button.disabled = false; button.textContent = 'เข้าสู่ระบบ Google ของโรงเรียน'; }
   }
 
   // --------------------------------------------------------------------------
@@ -265,18 +277,10 @@
   }
 
   async function confirmLineBinding() {
-    const studentId = document.getElementById('line-bind-student-id').value.trim();
-    const phone = document.getElementById('line-bind-phone').value.trim();
     const button = document.getElementById('btn-confirm-line-bind');
-    if (!/^\d{5}$/.test(studentId) || !/^0\d{9}$/.test(phone)) {
-      showToast('กรุณากรอกรหัสนักเรียน 5 หลักและเบอร์โทร 10 หลัก', 'error'); return;
-    }
     button.disabled = true;
-    const { error } = await supabaseClient.rpc('request_account_binding', { p_student_id: studentId, p_phone: phone });
-    button.disabled = false;
-    if (error) { showToast(error.message, 'error'); return; }
-    button.textContent = 'ส่งคำขอแล้ว — รอเจ้าหน้าที่ตรวจสอบตัวตน';
-    showToast('ส่งคำขอแล้ว กรุณาติดต่อเจ้าหน้าที่เพื่อยืนยันตัวตน จากนั้นเปิดเว็บอีกครั้ง', 'info', 12000);
+    try { await window.schoolAuth.login(); }
+    catch (error) { button.disabled = false; showToast(error.message, 'error', 10000); }
   }
 
   // --------------------------------------------------------------------------
