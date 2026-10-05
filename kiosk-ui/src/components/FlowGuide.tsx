@@ -11,7 +11,7 @@ export function FlowGuide({ screen, stage, saving, error, phone, guide }: Props)
   let hint = 'แตะเริ่มต้น แล้วทำตามคำแนะนำทีละขั้นตอน';
   let mode = 'welcome';
   let Icon = Leaf;
-  if (screen === 'numpad') { title = 'กรอกเลขประจำตัว 5 หลัก'; hint = 'เมื่อพบข้อมูลนักเรียน จะเปิดหน้าหยอดให้อัตโนมัติ'; mode = 'typing'; Icon = Fingerprint; }
+  if (screen === 'numpad') { title = 'กรอกเลขประจำตัว 5 หลัก'; hint = 'ตรวจชื่อนักเรียน แล้วกดยืนยันเพื่อเริ่มหยอด'; mode = 'typing'; Icon = Fingerprint; }
   if (phone) { title = 'เพิ่มเบอร์โทรศัพท์'; hint = 'กรอกเบอร์โทร หรือเลือกข้ามเพื่อทำขั้นตอนถัดไป'; mode = 'typing'; Icon = Phone; }
   if (guide) { title = 'เตรียมขวดก่อนหยอด'; hint = 'เทน้ำให้หมด แล้วหยอดขวดหรือกระป๋องทีละ 1 ชิ้น'; mode = 'deposit'; Icon = ArrowDown; }
   if (screen === 'deposit') {

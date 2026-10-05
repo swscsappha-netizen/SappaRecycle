@@ -38,7 +38,6 @@ export const ScreenNumpad: React.FC<ScreenNumpadProps> = ({
           if (!isCancelled && res) {
             setLiveData(res);
             SoundEngine.playChime();
-            onStudentVerified(res);
           }
           if (!isCancelled) {
             if (!res) setLookupError('โหลดข้อมูลจากฐานข้อมูลไม่ได้ กรุณาตรวจสอบรหัสหรือแจ้งเจ้าหน้าที่');
