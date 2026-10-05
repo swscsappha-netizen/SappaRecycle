@@ -31,7 +31,8 @@ export default function App() {
   const sessionIdRef = useRef(crypto.randomUUID());
   const screenRef = useRef(currentScreen);
   const sensorBusyRef = useRef(false);
-  const [staffReady, setStaffReady] = useState(false);
+  const [staffReady, setStaffReady] = useState((window as any).LOCAL_KIOSK === true);
+  const [pendingSync, setPendingSync] = useState(false);
   const [staffError, setStaffError] = useState('');
   const [authBusy, setAuthBusy] = useState(false);
   useEffect(() => { screenRef.current = currentScreen; }, [currentScreen]);
@@ -91,6 +92,7 @@ export default function App() {
     if (!staffReady) return;
     sessionIdRef.current = crypto.randomUUID();
     setSaveError('');
+    setPendingSync(false);
     if (hardwareState.petBinPercent >= 95 || hardwareState.canBinPercent >= 95) {
       setCurrentScreen('bin_full');
       return;
@@ -224,6 +226,7 @@ export default function App() {
     setSaveError('');
     try {
       const result = await recordDepositSessionInSupabase(currentStudent, sessionStats, sessionIdRef.current);
+      setPendingSync(result.pending_sync === true);
       setCurrentStudent({
         ...currentStudent,
         pointsBalance: result.current_points,
@@ -276,7 +279,7 @@ export default function App() {
           onOpenGuide={currentScreen !== 'bin_full' ? () => setShowGuideModal(true) : undefined}
         />
 
-        {staffReady && <FlowGuide screen={currentScreen} stage={hardwareState.sensorStage} saving={isSaving} error={saveError} phone={showPhoneModal} guide={showGuideModal} />}
+        {staffReady && <FlowGuide screen={currentScreen} stage={hardwareState.sensorStage} saving={isSaving} error={saveError} phone={showPhoneModal} guide={showGuideModal} pendingSync={pendingSync} />}
         {/* Dynamic Screen View with Motion Transitions */}
         <main className="flex-1 flex flex-col overflow-hidden relative">
           {!staffReady && (
@@ -363,6 +366,7 @@ export default function App() {
                 className="flex-1 flex flex-col h-full"
               >
                 <ScreenSummary
+                  pendingSync={pendingSync}
                   student={currentStudent}
                   sessionStats={sessionStats}
                   onResetToWelcome={handleResetToWelcome}

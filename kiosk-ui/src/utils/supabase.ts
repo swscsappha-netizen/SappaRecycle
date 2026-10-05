@@ -9,7 +9,20 @@ if (publicKey.startsWith('eyJ')) {
   const payload = JSON.parse(atob(publicKey.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
   if (payload.role !== 'anon') throw new Error('Only anon keys may be used in a browser');
 }
-export const supabase = publicKey ? (window as any).createSecureClient(url, publicKey) : null;
+const localDevice = (window as any).LOCAL_KIOSK === true;
+function createLocalClient() {
+  async function call(request: unknown) {
+    const response = await fetch('/api/request', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) });
+    return response.json();
+  }
+  return { from(table: string) {
+    const request: any = { table, operation: 'select', filters: [] };
+    const query: any = { select() { return query; }, eq(column: string, value: string) { request.filters.push({column,value,op:'eq'}); return query; },
+      maybeSingle() { request.single = true; request.optional = true; return call(request); } };
+    return query;
+  }, rpc(name: string, args: unknown) { return call({operation:'rpc', name, args}); } };
+}
+export const supabase = localDevice ? createLocalClient() : publicKey ? (window as any).createSecureClient(url, publicKey) : null;
 
 /**
  * Fetch student profile directly from Supabase Cloud (schema: student_id, full_name, room, no, phone_number, current_points)
@@ -114,7 +127,7 @@ export async function updateStudentPhoneInSupabase(studentId: string, phone: str
  */
 export async function recordDepositSessionInSupabase(
   student: Student, sessionStats: SessionStats, requestId: string
-): Promise<{ current_points: number; total_bottles_recycled: number }> {
+): Promise<{ current_points: number; total_bottles_recycled: number; pending_sync?: boolean }> {
   if (!supabase) throw new Error('Database connection is not configured');
   if (!Number.isSafeInteger(sessionStats.petCount) || !Number.isSafeInteger(sessionStats.canCount) ||
       sessionStats.petCount < 0 || sessionStats.canCount < 0) throw new Error('Invalid deposit counts');

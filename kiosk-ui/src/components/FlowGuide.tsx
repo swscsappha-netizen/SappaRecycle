@@ -1,8 +1,8 @@
 import { ArrowDown, Check, Fingerprint, Leaf, LoaderCircle, PackageCheck, Phone, ScanLine, TriangleAlert } from 'lucide-react';
 import { HardwareState, ScreenType } from '../types';
 
-interface Props { screen: ScreenType; stage?: HardwareState['sensorStage']; saving: boolean; error: string; phone?: boolean; guide?: boolean; }
-export function FlowGuide({ screen, stage, saving, error, phone, guide }: Props) {
+interface Props { screen: ScreenType; stage?: HardwareState['sensorStage']; saving: boolean; error: string; phone?: boolean; guide?: boolean; pendingSync?: boolean; }
+export function FlowGuide({ screen, stage, saving, error, phone, guide, pendingSync }: Props) {
   const busy = screen === 'deposit' && stage && stage !== 'WAITING_OBJECT';
   const rejected = screen === 'deposit' && stage === 'REJECTED';
   const blocked = Boolean(error) || screen === 'bin_full' || rejected;
@@ -21,6 +21,7 @@ export function FlowGuide({ screen, stage, saving, error, phone, guide }: Props)
   }
   if (saving) { title = 'กำลังบันทึกแต้ม'; hint = 'กรุณารอจนบันทึกสำเร็จ อย่าเพิ่งเริ่มรายการใหม่'; mode = 'saving'; Icon = LoaderCircle; }
   if (screen === 'summary') { title = 'บันทึกแต้มเรียบร้อยแล้ว'; hint = 'ตรวจยอดสรุป แล้วแตะจบรายการเพื่อให้คนถัดไปใช้งาน'; mode = 'done'; Icon = PackageCheck; }
+  if (screen === 'summary' && pendingSync) { title = 'เก็บรายการในเครื่องแล้ว'; hint = 'รอส่งแต้มขึ้นเว็บอัตโนมัติเมื่อเชื่อมต่อได้'; mode = 'saving'; Icon = LoaderCircle; }
   if (blocked) {
     title = rejected ? 'ชิ้นนี้รับไม่ได้' : screen === 'bin_full' ? 'พักใช้งานตู้ชั่วคราว' : 'ยังบันทึกแต้มไม่สำเร็จ';
     hint = rejected ? 'รับชิ้นที่ตู้ส่งคืน และรอให้ตู้พร้อมอีกครั้ง' : screen === 'bin_full' ? 'ถังใกล้เต็ม กรุณาแจ้งเจ้าหน้าที่' : 'กรุณาแจ้งเจ้าหน้าที่และตรวจข้อความผิดพลาดบนหน้าจอ';

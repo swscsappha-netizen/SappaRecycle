@@ -9,3 +9,5 @@ build/
 scratch/
 ~$*
 *.tmp
+# Local kiosk credentials and durable device records
+kiosk-local/data/

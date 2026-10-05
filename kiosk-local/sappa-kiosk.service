@@ -1,0 +1,18 @@
+[Unit]
+Description=Sappha local kiosk and durable points queue
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/opt/sappa/kiosk-local
+ExecStart=/usr/bin/node /opt/sappa/kiosk-local/server.mjs
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/sappa/kiosk-local/data
+
+[Install]
+WantedBy=multi-user.target

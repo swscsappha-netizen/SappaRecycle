@@ -1,0 +1,1 @@
+{"name":"sappa-local-kiosk","private":true,"type":"module","engines":{"node":">=24"},"scripts":{"start":"node server.mjs","setup":"node setup.mjs","test":"node --test test.mjs"}}

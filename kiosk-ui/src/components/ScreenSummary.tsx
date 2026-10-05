@@ -10,6 +10,7 @@ import { SoundEngine } from '../utils/audio';
 import { EarthMascot, PetBottleMascot, CanMascot } from './mascots/Mascots';
 
 interface ScreenSummaryProps {
+  pendingSync?: boolean;
   student: Student;
   sessionStats: SessionStats;
   onResetToWelcome: () => void;
@@ -17,6 +18,7 @@ interface ScreenSummaryProps {
 }
 
 export const ScreenSummary: React.FC<ScreenSummaryProps> = ({
+  pendingSync,
   student,
   sessionStats,
   onResetToWelcome,
@@ -102,7 +104,7 @@ export const ScreenSummary: React.FC<ScreenSummaryProps> = ({
           className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black shadow-xs border border-emerald-300 mb-1"
         >
           <Sparkles className="w-4 h-4 text-emerald-600 animate-spin" />
-          <span>บันทึกแต้มเข้าสู่ Cloud สภานักเรียนสำเร็จ 🎉</span>
+          <span>{pendingSync ? 'เก็บรายการในเครื่องแล้ว — รอส่งแต้มขึ้นเว็บ' : 'บันทึกแต้มเข้าสู่ Cloud สภานักเรียนสำเร็จ 🎉'}</span>
         </motion.div>
 
         <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
@@ -188,7 +190,7 @@ export const ScreenSummary: React.FC<ScreenSummaryProps> = ({
 
             <div className="text-right">
               <span className="text-xs font-bold text-emerald-100 uppercase tracking-wide block">
-                ยอดแต้มสะสมรวมล่าสุด
+                {pendingSync ? 'ยอดจากเว็บล่าสุด (ยังไม่รวมรายการที่รอส่ง)' : 'ยอดแต้มสะสมรวมล่าสุด'}
               </span>
               <div className="text-2xl md:text-3xl font-black text-white font-mono">
                 {totalNewBalance} <span className="text-sm font-bold text-emerald-200">แต้ม</span>
