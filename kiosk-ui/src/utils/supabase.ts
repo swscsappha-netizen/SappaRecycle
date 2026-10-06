@@ -10,6 +10,25 @@ if (publicKey.startsWith('eyJ')) {
   if (payload.role !== 'anon') throw new Error('Only anon keys may be used in a browser');
 }
 const localDevice = (window as any).LOCAL_KIOSK === true;
+export const kioskDemo = /(?:^|[?&])demo=1(?:&|$)/.test(window.location?.search || '');
+let demoPoints = 0;
+let demoBottles = 0;
+const demoReceipts = new Map<string, unknown>();
+function createDemoClient() {
+  return { from() {
+    let id = '';
+    const query: any = { select() { return query; }, eq(_column: string, value: string) { id = value; return query; },
+      async maybeSingle() { return {data: id === '00000' ? {student_id:'00000',full_name:'นักเรียน ทดลองระบบ',room:'ทดสอบ',no:1,current_points:demoPoints,total_bottles_recycled:demoBottles} : null,error:null}; } };
+    return query;
+  }, async rpc(name: string, args: any) {
+    if (name !== 'credit_recycle_batch' || args.p_student_id !== '00000') return {data:null,error:{message:'โหมดทดลองใช้รหัส 00000 เท่านั้น'}};
+    if (demoReceipts.has(args.p_request_id)) return {data:demoReceipts.get(args.p_request_id),error:null};
+    demoPoints += args.p_pet_count * 10 + args.p_can_count * 20;
+    demoBottles += args.p_pet_count;
+    const data = {success:true,student_id:'00000',current_points:demoPoints,total_bottles_recycled:demoBottles};
+    demoReceipts.set(args.p_request_id,data); return {data,error:null};
+  } };
+}
 function createLocalClient() {
   async function call(request: unknown) {
     const response = await fetch('/api/request', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) });
@@ -22,7 +41,7 @@ function createLocalClient() {
     return query;
   }, rpc(name: string, args: unknown) { return call({operation:'rpc', name, args}); } };
 }
-export const supabase = localDevice ? createLocalClient() : publicKey ? (window as any).createSecureClient(url, publicKey) : null;
+export const supabase = kioskDemo ? createDemoClient() : localDevice ? createLocalClient() : publicKey ? (window as any).createSecureClient(url, publicKey) : null;
 
 /**
  * Fetch student profile directly from Supabase Cloud (schema: student_id, full_name, room, no, phone_number, current_points)

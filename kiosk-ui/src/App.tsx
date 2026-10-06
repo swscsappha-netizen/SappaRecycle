@@ -17,6 +17,7 @@ import {
   recordDepositSessionInSupabase,
   SerialHardwareManager,
   supabase,
+  kioskDemo,
 } from './utils/supabase';
 
 export default function App() {
@@ -31,7 +32,7 @@ export default function App() {
   const sessionIdRef = useRef(crypto.randomUUID());
   const screenRef = useRef(currentScreen);
   const sensorBusyRef = useRef(false);
-  const [staffReady, setStaffReady] = useState((window as any).LOCAL_KIOSK === true);
+  const [staffReady, setStaffReady] = useState(kioskDemo || (window as any).LOCAL_KIOSK === true);
   const [pendingSync, setPendingSync] = useState(false);
   const [staffError, setStaffError] = useState('');
   const [authBusy, setAuthBusy] = useState(false);
@@ -280,6 +281,9 @@ export default function App() {
         />
 
         {staffReady && <FlowGuide screen={currentScreen} stage={hardwareState.sensorStage} saving={isSaving} error={saveError} phone={showPhoneModal} guide={showGuideModal} pendingSync={pendingSync} />}
+        {kioskDemo && <div className="shrink-0 bg-amber-50 border-y border-amber-200 px-4 py-2 text-center text-xs font-bold text-amber-900">โหมดทดลอง • ใช้รหัส 00000 • ไม่ส่งข้อมูลหรือเพิ่มแต้มจริง
+          {currentScreen === 'deposit' && <div className="flex gap-2 justify-center mt-2">{(['PET','CAN','REJECT'] as const).map(type => <button key={type} disabled={isSaving || hardwareState.sensorTriggered} className="bg-white border border-amber-300 rounded-lg px-3 py-2 disabled:opacity-40" onClick={() => handleTriggerDeposit(type)}>จำลอง {type}</button>)}</div>}
+        </div>}
         {/* Dynamic Screen View with Motion Transitions */}
         <main className="flex-1 flex flex-col overflow-hidden relative">
           {!staffReady && (
@@ -291,7 +295,7 @@ export default function App() {
               {staffError && <p role="alert" className="text-red-700">{staffError}</p>}
             </div>
           )}
-          {staffReady && currentScreen === 'welcome' && !SerialHardwareManager.getStatus() && (
+          {staffReady && !kioskDemo && currentScreen === 'welcome' && !SerialHardwareManager.getStatus() && (
             <button className="z-40 bg-amber-100 px-4 py-2 font-bold" onClick={async () => {
               const connected = await SerialHardwareManager.connect(event => handleTriggerDeposit(event.type, event.brand));
               if (!connected) setStaffError('เชื่อมต่ออุปกรณ์ตู้ไม่สำเร็จ');

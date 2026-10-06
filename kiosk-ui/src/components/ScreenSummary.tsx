@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Student, SessionStats } from '../types';
 import { SoundEngine } from '../utils/audio';
+import { kioskDemo } from '../utils/supabase';
 import { EarthMascot, PetBottleMascot, CanMascot } from './mascots/Mascots';
 
 interface ScreenSummaryProps {
@@ -104,7 +105,7 @@ export const ScreenSummary: React.FC<ScreenSummaryProps> = ({
           className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black shadow-xs border border-emerald-300 mb-1"
         >
           <Sparkles className="w-4 h-4 text-emerald-600 animate-spin" />
-          <span>{pendingSync ? 'เก็บรายการในเครื่องแล้ว — รอส่งแต้มขึ้นเว็บ' : 'บันทึกแต้มเข้าสู่ Cloud สภานักเรียนสำเร็จ 🎉'}</span>
+          <span>{kioskDemo ? 'จบรายการทดลองแล้ว — ไม่ได้เพิ่มแต้มจริง' : pendingSync ? 'เก็บรายการในเครื่องแล้ว — รอส่งแต้มขึ้นเว็บ' : 'บันทึกแต้มเข้าสู่ Cloud สภานักเรียนสำเร็จ 🎉'}</span>
         </motion.div>
 
         <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
