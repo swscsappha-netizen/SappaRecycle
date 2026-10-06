@@ -8,6 +8,65 @@
   --safe-top: env(safe-area-inset-top, 0px);
 }
 
+/* Soft mint surfaces with motion that respects the device's accessibility settings. */
+body {
+  background: radial-gradient(ellipse at 5% 0%, #d9f3df 0, transparent 45%),
+    radial-gradient(ellipse at 100% 35%, #f5efd8 0, transparent 40%), #f6f9f4;
+  background-attachment: fixed;
+}
+header { background: transparent !important; }
+header #btn-header-logo > div:first-child { border-radius: 15px; background: #e0efdb; }
+.balance-hero {
+  background: linear-gradient(145deg, #f0ffe9, #ffffff 58%, #fff8dd);
+  border: 1px solid #d6e8cd;
+  box-shadow: 0 16px 42px #244c2110, inset 0 1px 0 #fff;
+  isolation: isolate;
+}
+.balance-hero:hover { transform: none; }
+.eco-eyebrow { align-self: flex-start; display: flex; gap: 7px; align-items: center; font-size: 9px; letter-spacing: 1.3px; font-weight: 800; color: #547345; position: relative; z-index: 1; }
+.eco-dot { width: 6px; height: 6px; border-radius: 50%; background: #65a951; box-shadow: 0 0 0 4px #65a95116; }
+.eco-orbit { position: absolute; right: 12px; top: 30px; display: flex; gap: 7px; color: #75a866; opacity: .2; pointer-events: none; z-index: -1; }
+.eco-orbit span { font-size: 48px; animation: ecoDrift 7s ease-in-out infinite; }
+.eco-orbit span:nth-child(2) { animation-delay: -2s; margin-top: 30px; }
+.eco-orbit span:nth-child(3) { animation-delay: -4s; font-size: 28px; }
+#dash-points-balance { letter-spacing: -2px; font-variant-numeric: tabular-nums; }
+.tab-pane.active { animation: surfaceIn .45s cubic-bezier(.2,.7,.2,1) both; }
+.tab-pane.active > * { animation: surfaceIn .55s cubic-bezier(.2,.7,.2,1) both; }
+.tab-pane.active > :nth-child(2) { animation-delay: .07s; }
+.tab-pane.active > :nth-child(3) { animation-delay: .12s; }
+.reward-card { border-width: 1px; }
+button { transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease; }
+button:focus-visible, a:focus-visible { outline: 3px solid #64a950; outline-offset: 4px; }
+button:active:not(:disabled) { transform: scale(.97); }
+.btn-squishy:active:not(:disabled) { margin-top: 0; border-bottom-width: 4px !important; transform: scale(.97); }
+#bottom-nav { background: #fffffff0 !important; backdrop-filter: blur(18px); box-shadow: 0 -6px 30px #244c210c; border-top: 1px solid #e0eadc; }
+.nav-tab-btn.active span.material-symbols-rounded { animation: navPop .38s ease both; }
+#modal-line-bind > div:last-child { border: 1px solid #d4e6ce; background: linear-gradient(150deg,#fff,#f5faef); box-shadow: 0 30px 90px #16321e40; }
+#modal-line-bind > div:first-child { background: #13302180; backdrop-filter: blur(12px); }
+.school-welcome { text-align: center; padding: 6px 4px 12px; }
+.school-garden { height: 112px; position: relative; width: 180px; margin: 0 auto 16px; }
+.garden-ring { position: absolute; width: 105px; height: 105px; border: 1px dashed #9ab58d; border-radius: 50%; left: 38px; animation: gardenOrbit 40s linear infinite; }
+.garden-leaf { position: absolute; left: 52px; top: 15px; font-size: 75px; color: #548544; font-variation-settings: 'FILL' 1; transform-origin: bottom center; animation: leafSway 5s ease-in-out infinite; }
+.garden-spark { position: absolute; left: 14px; top: 18px; color: #c0a342; font-size: 26px; animation: ecoDrift 5s ease-in-out infinite; }
+.garden-bottle { position: absolute; right: 12px; bottom: 2px; font-size: 38px; color: #83a678; transform: rotate(15deg); animation: ecoDrift 6s ease-in-out -2s infinite; }
+.welcome-kicker { color: #779165; font-size: 9px; font-weight: 800; letter-spacing: 2px; }
+.school-welcome h4 { font-family: 'Prompt',sans-serif; font-weight: 700; font-size: clamp(24px,6vw,30px); line-height: 1.4; letter-spacing: -.6px; color: #264b29; margin: 10px 0; }
+.school-welcome p { font-size: 12px; line-height: 1.9; color: #67725f; }
+.school-welcome strong { color: #415c38; font-size: 11px; }
+.welcome-steps { display: flex; justify-content: center; gap: 7px; flex-wrap: wrap; margin-top: 18px; }
+.welcome-steps span { font-size: 9px; font-weight: 700; color: #85917c; padding: 6px 9px; border-radius: 20px; background: #edf2e7; }
+.welcome-steps span:nth-child(2) { color: #3d6930; background: #deedd5; }
+#btn-confirm-line-bind { background: #315f32; color: #fff; border-bottom: 0; border-radius: 18px; box-shadow: 0 7px 18px #315f3220; min-height: 52px; }
+#btn-confirm-line-bind:hover:not(:disabled) { background: #244d26; box-shadow: 0 10px 24px #315f3233; transform: translateY(-2px); }
+@keyframes surfaceIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes ecoDrift { 0%,100% { transform: translateY(0) rotate(-5deg); } 50% { transform: translateY(-9px) rotate(5deg); } }
+@keyframes leafSway { 0%,100% { transform: rotate(-8deg); } 50% { transform: rotate(6deg); } }
+@keyframes gardenOrbit { to { transform: rotate(360deg); } }
+@keyframes navPop { 0% { transform: scale(.8); } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+
 html, body {
   overflow-x: hidden;
   touch-action: manipulation;
@@ -131,3 +190,7 @@ html, body {
 .modal-overlay.active {
   display: flex !important;
 }
+
+/* Keep press feedback stable without changing the button's layout. */
+.btn-squishy:active:not(:disabled) { margin-top: 0; transform: scale(.97); }
+#btn-confirm-line-bind:active:not(:disabled) { border-bottom-width: 0 !important; }

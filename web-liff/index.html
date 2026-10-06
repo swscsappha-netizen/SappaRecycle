@@ -37,7 +37,7 @@
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   
   <!-- App Config -->
-  <script src="config.js?v=1.1.3"></script>
+  <script src="config.js?v=2"></script>
 
   <script id="tailwind-config">
     tailwind.config = {
@@ -81,7 +81,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="index.css">
+  <link rel="stylesheet" href="index.css?v=4">
 </head>
 <body class="bg-surface text-on-surface font-body min-h-screen pb-28 md:pb-32 flex justify-center selection:bg-primary-container selection:text-white">
   
@@ -145,7 +145,9 @@
       <section class="tab-pane active flex-col gap-4 sm:gap-5" id="tab-home">
         
         <!-- Balance Header Card -->
-        <div class="bg-surface-container-lowest rounded-[28px] sm:rounded-[32px] p-4 sm:p-6 reward-card flex flex-col items-center justify-between gap-4 sm:gap-5 relative overflow-hidden">
+        <div class="balance-hero bg-surface-container-lowest rounded-[28px] sm:rounded-[32px] p-4 sm:p-6 reward-card flex flex-col items-center justify-between gap-4 sm:gap-5 relative overflow-hidden">
+          <div class="eco-orbit" aria-hidden="true"><span class="material-symbols-rounded">eco</span><span class="material-symbols-rounded">water_bottle</span><span class="material-symbols-rounded">auto_awesome</span></div>
+          <div class="eco-eyebrow"><span class="eco-dot" aria-hidden="true"></span> SMALL STEPS, GREENER WORLD</div>
           <!-- Decorative Background Blurs -->
           <div class="absolute -top-10 -right-10 w-28 h-28 sm:w-32 sm:h-32 bg-secondary-container rounded-full mix-blend-multiply opacity-50 blur-xl pointer-events-none"></div>
           <div class="absolute -bottom-12 -left-12 w-32 h-32 sm:w-40 sm:h-40 bg-tertiary-container rounded-full mix-blend-multiply opacity-20 blur-xl pointer-events-none"></div>
@@ -533,30 +535,10 @@
           </div>
         </div>
 
-        <!-- Binding Form -->
-        <div class="flex flex-col gap-3">
-          <div class="flex flex-col gap-1">
-            <label class="text-[12px] font-extrabold text-on-surface">รหัสนักเรียน (5 หลัก) <span class="text-error">*</span></label>
-            <input type="text" id="line-bind-student-id" placeholder="เช่น 32650 หรือ 34889" maxlength="5" class="w-full bg-surface-container-low border-2 border-secondary-container rounded-[16px] px-4 py-3 font-display font-black text-[18px] text-primary focus:outline-none focus:border-primary text-center tracking-widest">
-          </div>
-
-          <!-- Student Real-time Verification Box -->
-          <div class="hidden bg-surface-container-low p-3.5 rounded-[20px] border border-secondary-container flex flex-col gap-1" id="line-bind-preview-box">
-            <span class="text-[11px] font-bold text-on-surface-variant">ข้อมูลนักเรียนที่พบ:</span>
-            <strong class="font-display text-[15px] font-black text-on-surface" id="line-bind-preview-name">-</strong>
-            <span class="text-[12px] font-bold text-primary" id="line-bind-preview-room">-</span>
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <label class="text-[12px] font-extrabold text-on-surface">เบอร์โทรศัพท์มือถือ (10 หลัก)</label>
-            <input type="tel" id="line-bind-phone" placeholder="08xxxxxxxx" maxlength="10" class="w-full bg-surface-container-low border-2 border-secondary-container rounded-[16px] px-4 py-2.5 font-bold text-on-surface focus:outline-none focus:border-primary">
-            <span class="text-[10px] text-on-surface-variant font-bold">* ใช้สำหรับยืนยันตัวตนเวลาแลกรับของรางวัล</span>
-          </div>
-        </div>
-
+        <div class="school-welcome"><div class="school-garden" aria-hidden="true"><span class="garden-ring"></span><span class="material-symbols-rounded garden-leaf">eco</span><span class="material-symbols-rounded garden-spark">auto_awesome</span><span class="material-symbols-rounded garden-bottle">water_bottle</span></div><span class="welcome-kicker">YOUR GREEN JOURNEY</span><h4>เริ่มสะสมแต้ม<br>เพื่อโลกที่สดใสกว่า</h4><p>ยืนยันตัวตนด้วย Google โรงเรียน<br><strong>เลขประจำตัว 5 หลัก@sappha.ac.th</strong></p><div class="welcome-steps"><span>✓ LINE</span><span>02 ยืนยันอีเมล</span><span>03 ดูแต้ม</span></div></div>
         <div class="pt-2">
           <button class="w-full bg-primary text-on-primary font-display font-extrabold py-3.5 rounded-[20px] btn-squishy hover:bg-primary-container border-b-4 border-on-primary-container cursor-pointer text-[15px] shadow-lg flex items-center justify-center gap-2" id="btn-confirm-line-bind">
-            ยืนยันผูกบัญชี LINE เข้าใช้งาน 🔗
+            เข้าสู่ระบบ Google ของโรงเรียน
           </button>
         </div>
 
@@ -600,6 +582,8 @@
 
   </div>
 
-  <script src="app.js?v=1.1.3"></script>
+  <script src="secure-client.js?v=2"></script>
+  <script src="school-auth.js?v=1"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>
