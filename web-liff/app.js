@@ -85,8 +85,12 @@
           await lookupStudentForBinding(); return;
         }
       } catch (error) {
-        openLineBindingModal(currentLineProfile); hideSplashScreen();
-        await lookupStudentForBinding(); showToast(error.message, 'error', 10000); return;
+        if (error.requiresSchoolVerification) {
+          openLineBindingModal(currentLineProfile); hideSplashScreen();
+          await lookupStudentForBinding(); showToast(error.message, 'error', 10000); return;
+        }
+        hideSplashScreen(); showIdentityRetry();
+        showToast('ตรวจสอบบัญชีไม่สำเร็จ กรุณาลองใหม่ โดยยังไม่ต้องยืนยัน Google ซ้ำ', 'error', 10000); return;
       }
     }
     // 3. Resolve Authenticated Student Identity
@@ -133,6 +137,16 @@
   async function syncLineProfileToCloud(studentId, lineProfile) {
     if (!studentId || !lineProfile || !window.APP_CONFIG) return;
     // Profile data comes from LINE; browser writes to public storage are disabled.
+  }
+
+  function showIdentityRetry() {
+    if (document.getElementById('identity-retry')) return;
+    const panel = document.createElement('div');
+    panel.id='identity-retry';panel.className='identity-retry';
+    panel.setAttribute('role','alert');
+    panel.innerHTML='<div><h2>ยังตรวจสอบบัญชีไม่ได้</h2><p>กรุณาตรวจสอบอินเทอร์เน็ต แล้วลองใหม่ ข้อมูลการยืนยันเดิมยังอยู่</p><button type="button">ลองใหม่</button></div>';
+    panel.querySelector('button').addEventListener('click',()=>window.location.reload());
+    document.body.appendChild(panel);
   }
 
   function hideSplashScreen() {

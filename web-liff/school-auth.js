@@ -12,7 +12,18 @@
       } });
       if (error) throw error;
     },
+    async status() {
+      const { data, error } = await window.createSecureClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY)
+        .rpc('get_school_verification', {});
+      if (error) throw new Error(error.message);
+      if (typeof data?.verified !== 'boolean') throw new Error('ตรวจสอบการยืนยันบัญชีไม่สำเร็จ');
+      return data;
+    },
     async verify() {
+      const status = await this.status();
+      if (status.verified) return status;
+
+      try {
       const { data, error } = await client.auth.getSession();
       if (error) throw error;
       if (!data.session) return null;
@@ -20,6 +31,11 @@
         .rpc('verify_school_google', { p_access_token: data.session.access_token });
       if (result.error) throw new Error(result.error.message);
       return result.data;
+      } catch (error) {
+        const failure = new Error(error.message || 'ยืนยัน Google ไม่สำเร็จ');
+        failure.requiresSchoolVerification = true;
+        throw failure;
+      }
     },
     async signOut() { await client.auth.signOut({ scope: 'local' }); }
   };
