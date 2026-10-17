@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 300" fill="none">
+<title>เพื่อนรักษ์โลกในโรงเรียนสรรพวิทยาคม</title>
+<style>
+.float{animation:float 4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}.can{animation-delay:-2s}.wave{animation:wave 2.5s ease-in-out infinite;transform-box:fill-box;transform-origin:0% 100%}.leaf{animation:wave 5s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}.cloud{animation:cloud 10s ease-in-out infinite}.eye{animation:blink 5s infinite;transform-box:fill-box;transform-origin:center}@keyframes float{50%{transform:translateY(-9px) rotate(2deg)}}@keyframes wave{50%{transform:rotate(-12deg)}}@keyframes cloud{50%{transform:translateX(14px)}}@keyframes blink{0%,43%,47%,100%{transform:scaleY(1)}45%{transform:scaleY(.12)}}@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+<rect x="2" y="2" width="756" height="296" rx="30" fill="#bfebe3" stroke="#203c32" stroke-width="3"/>
+<path d="M3 220Q180 160 380 220T757 205V269Q757 298 727 298H32Q3 298 3 268Z" fill="#8ad18d"/>
+<circle cx="656" cy="56" r="29" fill="#ffdb65" stroke="#203c32" stroke-width="3"/><path d="M645 60q11 10 22 0" stroke="#203c32" stroke-width="3" stroke-linecap="round"/>
+<g class="cloud" fill="#fffdf3"><path d="M75 63q-14-20 7-29 13-5 22 11 28-10 34 18Z"/><path d="M505 48q-9-17 8-22 13-3 18 10 21-5 27 12Z"/></g>
+<g stroke="#203c32" stroke-width="3" stroke-linejoin="round"><path d="M240 216V113H510V216" fill="#fff3ce"/><path d="m224 114 152-66 151 66Z" fill="#60ac80"/><path d="M264 126h32v30h-32Zm61 0h32v30h-32Zm70 0h32v30h-32Zm61 0h32v30h-32Z" fill="#91cce8"/><path d="M348 216v-42h55v42" fill="#66a982"/><rect x="308" y="86" width="137" height="29" rx="7" fill="#fffdf3"/><path d="M233 217h285v13H233Z" fill="#e6be88"/></g>
+<text x="377" y="106" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="14" fill="#203c32">SAPPHA SCHOOL</text>
+<g stroke="#203c32" stroke-width="3"><path d="M572 216v-98"/><g class="leaf" fill="#41a66b"><path d="M571 151c-80-4-49-103-11-76 31-62 100-3 59 27 41 43-12 72-48 49Z"/></g><path d="M555 218h38" stroke-linecap="round"/></g>
+<g class="float" stroke="#203c32" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+<path d="m128 231-7 31h-22m61-31 8 31h22"/><path d="M102 162q-30 0-35 26"/>
+<path class="wave" d="M175 159q31-4 33-32m-1 4 10-8m-10 8-6-10"/>
+<path d="M121 90h33v27c0 13 28 15 28 39v62q0 20-20 20h-47q-20 0-20-20v-62c0-24 26-26 26-39Z" fill="#e0f9f0"/><rect x="117" y="77" width="41" height="19" rx="6" fill="#58b38b"/>
+<path d="M97 187h83v28H97Z" fill="#58b38b"/><path d="m130 198 8-5 8 5-8 10Z" fill="#fff3ce"/>
+<g class="eye" fill="#203c32"><ellipse cx="123" cy="153" rx="4" ry="7"/><ellipse cx="151" cy="153" rx="4" ry="7"/></g><path d="M124 168q14 16 28 0" fill="#ffbd9a"/><path d="M106 143v29" stroke="white" stroke-width="5"/>
+</g>
+<g class="float can" stroke="#203c32" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+<path d="m641 226-3 29h-18m46-29 7 29h18M618 169q-22 0-28-16"/><path class="wave" d="M690 169q27-2 31-28m0 0 8-4m-8 4-5-8"/>
+<rect x="615" y="126" width="78" height="105" rx="16" fill="#ffdc67"/><ellipse cx="654" cy="129" rx="38" ry="10" fill="#fff3ce"/><ellipse cx="654" cy="129" rx="9" ry="3" fill="#b6cbc1"/>
+<path d="M617 197h74v20h-74" fill="#f9ac7e"/><g class="eye" fill="#203c32"><ellipse cx="639" cy="165" rx="4" ry="7"/><ellipse cx="667" cy="165" rx="4" ry="7"/></g><path d="M642 181q12 12 24 0" fill="#fffdf3"/>
+</g>
+<g fill="#fffdf3" stroke="#203c32" stroke-width="2"><path d="m205 53 4-11 4 11 11 4-11 4-4 11-4-11-11-4Z"/><path d="m541 165 3-8 3 8 8 3-8 3-3 8-3-8-8-3Z"/></g>
+<path d="M264 266q100-23 235 0" stroke="#fff3ce" stroke-width="13" stroke-linecap="round"/>
+<text x="381" y="272" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="bold" fill="#203c32">SMALL ACTS. BIG CHANGE.</text>
+</svg>

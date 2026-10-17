@@ -1,0 +1,14 @@
+:root{--eco-ink:#203c32;--eco-paper:#fffdf3;--eco-green:#58b38b;--eco-yellow:#ffdc67;--eco-blue:#91cce8}
+.school-story{display:block;width:100%;height:auto;border-radius:24px}
+body{background:#f7f4e8;color:var(--eco-ink)}
+.balance-hero,.reward-card{background:var(--eco-paper);border:2px solid var(--eco-ink);box-shadow:4px 5px 0 #203c32;border-radius:24px}
+.balance-hero{background:#d9f3df}.eco-eyebrow{color:#203c32}.eco-orbit{display:none}
+.school-story-card{position:relative;overflow:hidden;border-radius:24px;flex-shrink:0}
+.school-story-caption{position:absolute;bottom:12px;left:16px;background:#fffdf3;border:2px solid #203c32;border-radius:12px;padding:5px 10px;font-size:11px;font-weight:800;transform:rotate(-2deg)}
+.btn-squishy{border:2px solid #203c32!important;box-shadow:3px 4px 0 #203c32!important;border-radius:16px!important}
+.btn-squishy:active:not(:disabled){transform:translate(2px,2px);box-shadow:1px 2px 0 #203c32!important;border-bottom-width:2px!important}
+#bottom-nav{border-top:2px solid #203c32;background:#fffdf3!important;backdrop-filter:none}
+.school-welcome{background:#fffdf3!important}.school-welcome .school-story{max-height:160px;object-fit:contain;margin-bottom:12px}
+.tab-pane.active{animation:schoolEnter .3s ease-out both}.tab-pane.active>*{animation:none}
+@keyframes schoolEnter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
