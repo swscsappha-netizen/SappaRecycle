@@ -30,49 +30,6 @@
 
   const PASTEL_COLORS = ['#E3F2FD', '#FFF9C4', '#FFE0B2', '#E8F5E9', '#F3E5F5'];
 
-  // Default Rewards Fallback
-  const DEFAULT_REWARDS = [
-    {
-      reward_id: '00000000-0000-0000-0000-000000000001',
-      title: 'ปากกาเจลรักษ์โลก (Eco Gel Pen)',
-      category: 'stationery',
-      points_required: 30,
-      stock_quantity: 150,
-      image_url: 'https://images.unsplash.com/photo-1585336261026-7756f7ef0cf4?w=400&q=80'
-    },
-    {
-      reward_id: '00000000-0000-0000-0000-000000000002',
-      title: 'สมุดบันทึก Green Earth A5',
-      category: 'stationery',
-      points_required: 50,
-      stock_quantity: 80,
-      image_url: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&q=80'
-    },
-    {
-      reward_id: '00000000-0000-0000-0000-000000000003',
-      title: 'ใบเพิ่มคะแนนคุณลักษณะ +5 คะแนน',
-      category: 'character',
-      points_required: 100,
-      stock_quantity: 50,
-      image_url: 'https://images.unsplash.com/photo-1556742049-0a67c5574f73?w=400&q=80'
-    },
-    {
-      reward_id: '00000000-0000-0000-0000-000000000004',
-      title: 'รูบิคฝึกสมอง / ของเล่นเสริมทักษะ',
-      category: 'toy',
-      points_required: 150,
-      stock_quantity: 30,
-      image_url: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400&q=80'
-    },
-    {
-      reward_id: '00000000-0000-0000-0000-000000000005',
-      title: 'โมเดลตัวต่อรักษ์โลก Eco Blocks',
-      category: 'toy',
-      points_required: 200,
-      stock_quantity: 20,
-      image_url: 'https://images.unsplash.com/photo-1544816155-12df9643f363?w=400&q=80'
-    }
-  ];
 
   // --------------------------------------------------------------------------
   // 1. Boot & Setup
@@ -319,72 +276,58 @@
     showToast('โหลดบัญชีนักเรียนไม่สำเร็จ กรุณาลองใหม่', 'error');
   }
 
+
+  const collectionState = { rewards: 'idle', coupons: 'idle', history: 'idle' };
+  function renderCollectionState(element, name) {
+    if (!element) return true;
+    const state = collectionState[name];
+    if (state === 'ready') return false;
+    const failed = state === 'error';
+    element.setAttribute('aria-busy', String(state === 'loading'));
+    element.innerHTML = '<div class="collection-status col-span-2" role="status"><span class="material-symbols-rounded" aria-hidden="true">' + (failed ? 'cloud_off' : 'hourglass_top') + '</span><p>' + (failed ? 'โหลดข้อมูลไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่' : state === 'idle' ? 'ข้อมูลจะแสดงเมื่อเข้าสู่ระบบแล้ว' : 'กำลังโหลดข้อมูลล่าสุด...') + '</p>' + (failed ? '<button type="button" data-retry-collection="' + name + '">ลองใหม่</button>' : '') + '</div>';
+    return true;
+  }
+  document.addEventListener('click', event => {
+    const button = event.target.closest('[data-retry-collection]');
+    if (!button) return;
+    const loaders = { rewards: fetchRewards, coupons: fetchStudentCoupons, history: fetchStudentRecycleLogs };
+    void loaders[button.dataset.retryCollection]?.();
+  });
+
   async function fetchRewards() {
-    if (supabaseClient) {
-      try {
-        const { data, error } = await supabaseClient
-          .from('rewards')
-          .select('*')
-          .eq('is_active', true)
-          .order('points_required', { ascending: true });
-
-        if (data && !error && data.length > 0) {
-          rewardsData = data;
-          renderRewardStore();
-          populateAdminRewardDropdown();
-          return;
-        }
-      } catch (e) {
-        console.warn("Could not fetch rewards:", e);
-      }
+    if (collectionState.rewards === 'loading') return false;
+    collectionState.rewards = 'loading'; renderRewardStore();
+    try {
+      if (!supabaseClient) throw Error('Connection unavailable');
+      const { data, error } = await supabaseClient.from('rewards').select('*').eq('is_active', true).order('points_required', { ascending: true });
+      if (error || !Array.isArray(data)) throw Error('Rewards unavailable');
+      rewardsData = data; collectionState.rewards = 'ready';
+      renderRewardStore(); populateAdminRewardDropdown(); return true;
+    } catch {
+      collectionState.rewards = 'error'; renderRewardStore(); return false;
     }
-    rewardsData = DEFAULT_REWARDS;
-    renderRewardStore();
-    populateAdminRewardDropdown();
   }
-
   async function fetchStudentCoupons() {
-    if (!activeStudent || !supabaseClient) return;
+    if (!activeStudent || !supabaseClient || collectionState.coupons === 'loading') return false;
+    collectionState.coupons = 'loading'; renderCoupons();
     try {
-      const { data, error } = await supabaseClient
-        .from('coupons')
-        .select('*, rewards(title, image_url)')
-        .eq('student_id', activeStudent.student_id)
-        .order('created_at', { ascending: false });
-
-      if (data && !error) {
-        couponsData = data.map(c => ({
-          coupon_id: c.coupon_id,
-          student_id: c.student_id,
-          coupon_code: c.coupon_code,
-          status: c.status,
-          created_at: c.created_at,
-          redeemed_at: c.redeemed_at,
-          reward_title: c.rewards?.title || 'ของรางวัล'
-        }));
-        renderCoupons();
-      }
-    } catch (e) {
-      console.warn("Coupons fetch error:", e);
+      const { data, error } = await supabaseClient.from('coupons').select('*, rewards(title, image_url)').eq('student_id', activeStudent.student_id).order('created_at', { ascending: false });
+      if (error || !Array.isArray(data)) throw Error('Coupons unavailable');
+      couponsData = data.map(c => ({ coupon_id:c.coupon_id, student_id:c.student_id, coupon_code:c.coupon_code, status:c.status, created_at:c.created_at, redeemed_at:c.redeemed_at, reward_title:c.rewards?.title || 'ของรางวัล' }));
+      collectionState.coupons = 'ready'; renderCoupons(); return true;
+    } catch {
+      collectionState.coupons = 'error'; renderCoupons(); return false;
     }
   }
-
   async function fetchStudentRecycleLogs() {
-    if (!activeStudent || !supabaseClient) return;
+    if (!activeStudent || !supabaseClient || collectionState.history === 'loading') return false;
+    collectionState.history = 'loading'; renderHistory();
     try {
-      const { data, error } = await supabaseClient
-        .from('recycle_logs')
-        .select('*')
-        .eq('student_id', activeStudent.student_id)
-        .order('created_at', { ascending: false })
-        .limit(15);
-
-      if (data && !error) {
-        recycleLogsData = data;
-        renderHistory();
-      }
-    } catch (e) {
-      console.warn("Logs fetch error:", e);
+      const { data, error } = await supabaseClient.from('recycle_logs').select('*').eq('student_id', activeStudent.student_id).order('created_at', { ascending:false }).limit(15);
+      if (error || !Array.isArray(data)) throw Error('History unavailable');
+      recycleLogsData = data; collectionState.history = 'ready'; renderHistory(); renderDashboard(); return true;
+    } catch {
+      collectionState.history = 'error'; renderHistory(); renderDashboard(); return false;
     }
   }
 
@@ -462,13 +405,8 @@
       else if (l.item_type === 'CAN') canCount += 1;
     });
 
-    if (recycleLogsData.length === 0 && activeStudent.total_bottles_recycled > 0) {
-      petCount = Math.round(activeStudent.total_bottles_recycled * 0.75);
-      canCount = activeStudent.total_bottles_recycled - petCount;
-    }
-
-    document.getElementById('dash-pet-count').textContent = `${petCount} ชิ้น`;
-    document.getElementById('dash-can-count').textContent = `${canCount} ชิ้น`;
+    document.getElementById('dash-pet-count').textContent = collectionState.history === 'ready' ? `${petCount} ชิ้น` : '—';
+    document.getElementById('dash-can-count').textContent = collectionState.history === 'ready' ? `${canCount} ชิ้น` : '—';
 
     const rankInfo = getRankInfo(activeStudent.total_bottles_recycled);
     document.getElementById('dash-rank-badge').innerHTML = `<span class="material-symbols-rounded text-sm" style="font-variation-settings: 'FILL' 1;">eco</span> ${rankInfo.rank}`;
@@ -478,6 +416,8 @@
 
   function renderHistory() {
     const listEl = document.getElementById('recent-history-list');
+    if (renderCollectionState(listEl, 'history')) return;
+    listEl.setAttribute('aria-busy', 'false');
     let filteredLogs = recycleLogsData;
     if (selectedHomeCategory !== 'all') {
       filteredLogs = recycleLogsData.filter(l => l.item_type === selectedHomeCategory);
@@ -513,8 +453,10 @@
 
   function renderRewardStore() {
     const grid = document.getElementById('rewards-grid');
+    if (renderCollectionState(grid, 'rewards')) return;
+    grid.setAttribute('aria-busy', 'false');
     if (rewardsData.length === 0) {
-      grid.innerHTML = '<div class="col-span-2 text-center py-8 text-on-surface-variant font-bold">กำลังโหลดของรางวัล...</div>';
+      grid.innerHTML = '<div class="col-span-2 text-center py-8 text-on-surface-variant font-bold">ขณะนี้ยังไม่มีของรางวัลให้แลก</div>';
       return;
     }
 
@@ -592,6 +534,8 @@
     document.getElementById('count-used-coupons').textContent = usedCoupons.length;
 
     const listEl = document.getElementById('coupons-list');
+    if (renderCollectionState(listEl, 'coupons')) return;
+    listEl.setAttribute('aria-busy', 'false');
     const activeFilter = document.querySelector('.c-tab.active')?.getAttribute('data-filter') || 'ACTIVE';
     const displayList = activeFilter === 'ACTIVE' ? activeCoupons : usedCoupons;
 
@@ -696,11 +640,11 @@
 
   async function executeRedemption(reward) {
     if (activeStudent.current_points < reward.points_required) {
-      alert('แต้มสะสมไม่เพียงพอ');
+      showToast('แต้มสะสมไม่เพียงพอ', 'warning');
       return;
     }
     if (reward.stock_quantity <= 0) {
-      alert('ของรางวัลหมดแล้ว');
+      showToast('ของรางวัลหมดแล้ว', 'warning');
       return;
     }
 
@@ -1177,6 +1121,14 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  async function saveStudentPhone(phone) {
+    if (!/^0[0-9]{9}$/.test(phone)) throw Error('กรุณากรอกเบอร์โทรศัพท์ 10 หลัก เริ่มต้นด้วย 0');
+    if (!supabaseClient || !activeStudent) throw Error('ยังไม่ได้เชื่อมต่อบัญชีนักเรียน');
+    const { error } = await supabaseClient.from('students').update({ phone_number:phone }).eq('student_id',activeStudent.student_id);
+    if (error) throw Error('บันทึกเบอร์ไม่สำเร็จ กรุณาลองใหม่');
+    activeStudent.phone_number = phone;
+  }
+
   function bindEvents() {
     // 1. Nav tabs
     document.querySelectorAll('.nav-tab-btn[data-tab]').forEach(btn => {
@@ -1223,14 +1175,19 @@
     });
 
     document.getElementById('btn-stat-room')?.addEventListener('click', () => switchTab('tab-profile'));
-    document.getElementById('btn-refresh-history')?.addEventListener('click', async () => {
+    document.getElementById('btn-refresh-history')?.addEventListener('click', async event => {
+      const button = event.currentTarget;
+      if (button.disabled) return;
+      button.disabled = true;
+      button.setAttribute('aria-busy', 'true');
       try {
         await refreshStudentBalance();
-        await fetchStudentRecycleLogs();
-        showToast('อัปเดตแต้มสะสมล่าสุดแล้ว', 'success');
+        const loaded = await fetchStudentRecycleLogs();
+        if (!loaded) throw Error('โหลดประวัติล่าสุดไม่สำเร็จ กรุณาลองใหม่');
+        showToast('อัปเดตแต้มและประวัติล่าสุดแล้ว', 'success');
       } catch (error) {
         showToast(error.message || 'รีเฟรชข้อมูลไม่สำเร็จ', 'error');
-      }
+      } finally { button.disabled = false; button.setAttribute('aria-busy', 'false'); }
     });
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && activeStudent) {
@@ -1280,44 +1237,31 @@
     });
 
     // 7. Save Phone (Profile)
-    document.getElementById('btn-save-phone').addEventListener('click', async () => {
-      const phone = document.getElementById('prof-phone').value.trim();
-      if (phone.length < 9) {
-        alert('กรุณากรอกเบอร์โทรศัพท์ 10 หลักให้ถูกต้อง');
-        return;
-      }
-      activeStudent.phone_number = phone;
-      if (supabaseClient) {
-        await supabaseClient
-          .from('students')
-          .update({ phone_number: phone })
-          .eq('student_id', activeStudent.student_id);
-      }
-      alert('✅ บันทึกเบอร์โทรศัพท์เรียบร้อยแล้ว');
-      renderAll();
+    document.getElementById('btn-save-phone').addEventListener('click', async event => {
+      const button=event.currentTarget;
+      if(button.disabled) return;
+      button.disabled=true;button.setAttribute('aria-busy','true');
+      try {
+        await saveStudentPhone(document.getElementById('prof-phone').value.trim());
+        renderProfile();showToast('บันทึกเบอร์โทรศัพท์เรียบร้อยแล้ว','success');
+      } catch(error) { showToast(error.message,'error'); }
+      finally { button.disabled=false;button.setAttribute('aria-busy','false'); }
     });
 
     // 8. Gatekeeper Modal Events
     document.getElementById('btn-gatekeeper-cancel')?.addEventListener('click', closeWarningModal);
     document.getElementById('btn-gatekeeper-cancel-backdrop')?.addEventListener('click', closeWarningModal);
-    document.getElementById('btn-gatekeeper-save')?.addEventListener('click', async () => {
-      const phone = document.getElementById('input-gatekeeper-phone').value.trim();
-      if (phone.length < 9) {
-        showToast('กรุณากรอกเบอร์โทรศัพท์ 10 หลักให้ถูกต้อง', 'warning');
-        return;
-      }
-      activeStudent.phone_number = phone;
-      if (supabaseClient) {
-        await supabaseClient
-          .from('students')
-          .update({ phone_number: phone })
-          .eq('student_id', activeStudent.student_id);
-      }
-      closeWarningModal();
-      if (pendingRedeemReward) {
-        executeRedemption(pendingRedeemReward);
-        pendingRedeemReward = null;
-      }
+    document.getElementById('btn-gatekeeper-save')?.addEventListener('click', async event => {
+      const button=event.currentTarget;
+      if(button.disabled) return;
+      button.disabled=true;button.setAttribute('aria-busy','true');
+      try {
+        await saveStudentPhone(document.getElementById('input-gatekeeper-phone').value.trim());
+        const reward=pendingRedeemReward;
+        closeWarningModal();renderProfile();
+        if(reward) await executeRedemption(reward);
+      } catch(error) { showToast(error.message,'error'); }
+      finally { button.disabled=false;button.setAttribute('aria-busy','false'); }
     });
 
     // 9. QR Modal close

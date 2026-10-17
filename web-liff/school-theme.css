@@ -12,3 +12,17 @@ body{background:#f7f4e8;color:var(--eco-ink)}
 .tab-pane.active{animation:schoolEnter .3s ease-out both}.tab-pane.active>*{animation:none}
 @keyframes schoolEnter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* Every student tab uses the same school eco surfaces and touch targets. */
+.collection-status { width:100%;padding:28px 18px;border:2px dashed #78998a;border-radius:22px;background:#fffdf3;color:#355e48;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;font-weight:700;font-size:13px; }
+.collection-status>.material-symbols-rounded { font-size:32px; }
+.collection-status button { min-height:44px;padding:8px 22px;border:2px solid #203c32;border-radius:14px;background:#ffdc67;box-shadow:2px 3px 0 #203c32; }
+#tab-rewards,#tab-coupons,#tab-profile { scroll-margin-top:80px; }
+#tab-rewards>.px-1,#tab-coupons>.px-1,#tab-profile>.px-1 { padding:16px;border:2px solid #203c32;border-radius:22px;background:#d9f3df; }
+#tab-coupons>.px-1 { background:#fff3ce; }
+#tab-profile>.px-1 { background:#dceef8; }
+.cat-pill,.c-tab,.store-cat-pill { min-height:44px; }
+#bottom-nav button { min-height:48px; }
+button:disabled { cursor:not-allowed;opacity:.6; }
+button[aria-busy="true"] { cursor:wait; }
+@media(max-width:380px) { #bottom-nav button { padding-left:7px;padding-right:7px; } .collection-status { padding:20px 12px; } }
