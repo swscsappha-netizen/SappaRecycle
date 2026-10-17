@@ -4,7 +4,7 @@
   /** Presentation only. This module never calls account or credit APIs. */
   function createDirector({guide,actors=[],reduced=()=>false,changed=()=>{}}){
     let animations=[],revision=0,current='home';
-    const cancel=()=>{revision++;animations.forEach(a=>a.cancel());animations=[];};
+    const cancel=()=>{revision++;animations.forEach(a=>a.cancel());animations=[];actors.forEach(actor=>{if(actor.dataset.pose==='walk')actor.dataset.pose=actor.dataset.restPose||'idle';});};
     function navigate(scene){
       if(!scenes[scene])return false;
       const old=actors.map(a=>a.getBoundingClientRect());
@@ -18,11 +18,14 @@
         const next=actor.getBoundingClientRect();
         if(!actor.animate)return;
         const animation=actor.animate([{transform:`translate(${old[i].left-next.left}px,${old[i].top-next.top}px) scale(${old[i].width/(next.width||1)})`},{transform:'translate(0,0) scale(1)'}],{duration:340,easing:'cubic-bezier(.22,.72,.22,1)'});
-        animations.push(animation);animation.finished?.catch(()=>{});
+        const journey=revision;actor.dataset.restPose=actor.dataset.pose;
+        actor.dataset.pose='walk';
+        animations.push(animation);animation.finished?.then(()=>{if(revision===journey)actor.dataset.pose=actor.dataset.character===scenes[current].character?scenes[current].pose:'idle';}).catch(()=>{});
       });
       return true;
     }
     function status(value){
+      cancel(); // A late movement completion must not overwrite a newer status.
       actors.forEach(actor=>{if(actor.dataset.character===scenes[current].character)actor.dataset.pose=value==='error'?'alert':value==='loading'?'wait':value==='success'?'happy':scenes[current].pose;});
     }
     return {navigate,status,cancel,get scene(){return current;},get revision(){return revision;}};
@@ -30,7 +33,7 @@
   if(typeof module!=='undefined'&&module.exports)module.exports={createDirector};
   if(!root.document)return;
   const doc=root.document;
-  let director=null,fetchArt=null,flight=null,flightNode=null,observer=null,pageAnimation=null;
+  let director=null,fetchArt=null,flight=null,flightNode=null,observer=null,pageAnimation=null,navAnimation=null,navObserver=null;
   const reduced=()=>root.matchMedia('(prefers-reduced-motion: reduce)').matches;
   function cancelFlight(){flight?.cancel();flightNode?.remove();flight=null;flightNode=null;}
   function poseNodes(){doc.querySelectorAll('[data-friend]').forEach(node=>{node.dataset.character=node.dataset.friend;node.dataset.pose=node.dataset.pose||'idle';node.classList.add('eco-friend');});}
@@ -66,21 +69,32 @@
   }
   function navigate(tab){
     cancelFlight();const scene=({'tab-home':'home','tab-rewards':'rewards','tab-coupons':'coupons','tab-profile':'profile','view-scanner':'scanner'})[tab];
-    if(scene)director?.navigate(scene);enter(doc.getElementById(tab));
+    if(scene)director?.navigate(scene);enter(doc.getElementById(tab));moveNav(tab);
+  }
+  function moveNav(tab){
+    const list=doc.getElementById('bottom-nav-list'),button=list?.querySelector('[data-tab="'+tab+'"]'),pill=doc.querySelector('.friend-nav-track');
+    if(!list||!pill)return;
+    const before=pill.getBoundingClientRect();navAnimation?.cancel();navAnimation=null;
+    if(!button){pill.hidden=true;return;}pill.hidden=false;
+    const to=button.getBoundingClientRect(),parent=list.getBoundingClientRect();
+    pill.style.left=(to.left-parent.left)+'px';pill.style.top=(to.top-parent.top)+'px';pill.style.width=to.width+'px';pill.style.height=to.height+'px';
+    if(!reduced()&&before.width) {navAnimation=pill.animate([{transform:`translateX(${before.left-to.left}px)`},{transform:'translateX(0)'}],{duration:340,easing:'cubic-bezier(.22,.72,.22,1)'});navAnimation.finished.catch(()=>{});}
   }
   function boot(){
     const main=doc.querySelector('main');if(!main)return;
     const guide=doc.createElement('aside');guide.className='friend-guide';guide.dataset.scene='home';guide.setAttribute('aria-label','เพื่อนนักเรียนรักษ์โลก');
-    guide.innerHTML='<div class="friend-guide-copy"><span class="friend-kicker">SAPPHA · ECO FRIENDS</span><h2></h2><p></p></div><div class="guide-actors" aria-hidden="true"><div data-friend="cat" data-active="true" data-pose="wave"></div><div data-friend="rabbit"></div><div data-friend="bird"></div></div>';
+    guide.innerHTML='<div class="friend-guide-copy"><span class="friend-kicker">SAPPHA · ECO FRIENDS</span><h2></h2><p></p></div><div class="friend-campus" aria-hidden="true"><div class="friend-cloud cloud-one"></div><div class="friend-cloud cloud-two"></div><span class="friend-sun">✳</span><div class="friend-building"><span>โรงเรียนของเรา</span><i></i><i></i><i></i><i></i><i></i><i></i></div><span class="friend-tree tree-one">♣</span><span class="friend-tree tree-two">♣</span><div class="friend-lawn"></div></div><div class="guide-actors" aria-hidden="true"><div data-friend="cat" data-active="true" data-pose="wave"></div><div data-friend="rabbit"></div><div data-friend="bird"></div></div><span class="friend-scene-label" aria-hidden="true">เล็ก ๆ ที่เราทำ · ยิ่งใหญ่ต่อโลก</span>';
     main.before(guide);poseNodes();
+    const list=doc.getElementById('bottom-nav-list');
+    if(list){const pill=doc.createElement('span');pill.className='friend-nav-track';pill.setAttribute('aria-hidden','true');list.prepend(pill);if('ResizeObserver' in root){navObserver=new ResizeObserver(()=>moveNav(doc.querySelector('.nav-tab-btn.active')?.dataset.tab||'tab-home'));navObserver.observe(list);}}
     director=createDirector({guide,actors:[...guide.querySelectorAll('[data-friend]')],reduced,changed(scene){guide.querySelector('h2').textContent=scene.title;guide.querySelector('p').textContent=scene.hint;}});
     if('IntersectionObserver' in root)observer=new IntersectionObserver(entries=>entries.forEach(e=>e.target.classList.toggle('friend-paused',!e.isIntersecting)));
     hydrate();
     fetch(new URL('assets/school-eco.svg',doc.baseURI)).then(r=>r.ok?r.text():'').then(art=>{if(!art)return;doc.querySelectorAll('[data-school-scene]').forEach(node=>{node.innerHTML=art;observer?.observe(node);});}).catch(()=>{});
     navigate('tab-home');
     const pause=()=>doc.documentElement.classList.toggle('motion-paused',doc.hidden);doc.addEventListener('visibilitychange',pause);pause();
-    const media=root.matchMedia('(prefers-reduced-motion: reduce)');media.addEventListener?.('change',()=>{director.cancel();cancelFlight();pageAnimation?.cancel();});
-    root.addEventListener('pagehide',()=>{director.cancel();cancelFlight();observer?.disconnect();});
+    const media=root.matchMedia('(prefers-reduced-motion: reduce)');media.addEventListener?.('change',()=>{director.cancel();cancelFlight();pageAnimation?.cancel();navAnimation?.cancel();});
+    root.addEventListener('pagehide',()=>{director.cancel();cancelFlight();observer?.disconnect();navObserver?.disconnect();navAnimation?.cancel();});
   }
   root.EcoMotion={navigate,enter,expand,transfer,hydrate,status:value=>director?.status(value)};
   doc.addEventListener('DOMContentLoaded',boot);
