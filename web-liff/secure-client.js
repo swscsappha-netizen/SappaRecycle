@@ -11,7 +11,7 @@
           body: JSON.stringify({ p_id_token: idToken, p_request: payload }),
         });
         const result = await response.json();
-        if (!response.ok) throw new Error(result.message || 'ไม่สามารถยืนยันสิทธิ์ได้');
+        if (!response.ok) return {data:null,error:{message:result.message || 'ไม่สามารถยืนยันสิทธิ์ได้',code:result.code,status:response.status},count:null};
         return result;
       } catch (error) {
         return { data: null, error: { message: error.message }, count: null };

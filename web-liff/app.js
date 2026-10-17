@@ -105,6 +105,7 @@
         if (data && !error) {
           // Existing linked student -> Login immediately!
           activeStudent = data;
+          freshness.balance={state:'ready',at:new Date().toISOString()}; notifyActivity();
           syncLineProfileToCloud(activeStudent.student_id, currentLineProfile);
           await fetchStudentCoupons();
           await fetchStudentRecycleLogs();
@@ -258,15 +259,29 @@
   // --------------------------------------------------------------------------
   // 2. Data Fetching
   // --------------------------------------------------------------------------
+  let balanceRequest = null;
+  let historyOffset = 0, historyMore = false;
+  const freshness = { balance: {state:'idle',at:null}, history: {state:'idle',at:null} };
+  function notifyActivity(){ window.PortalActivity?.sync(); }
   async function refreshStudentBalance() {
+    if (balanceRequest) return balanceRequest;
+    balanceRequest = loadStudentBalance();
+    try { return await balanceRequest; } finally { balanceRequest = null; }
+  }
+  async function loadStudentBalance() {
     if (!activeStudent || !supabaseClient) throw new Error('กรุณาเข้าสู่ระบบก่อน');
+    freshness.balance.state='loading'; notifyActivity();
+    try {
     const { data, error } = await supabaseClient.from('students')
       .select('*').eq('student_id', activeStudent.student_id).single();
     if (error || !data) throw new Error('โหลดแต้มล่าสุดไม่สำเร็จ');
     const previousPoints = activeStudent.current_points;
     activeStudent = data;
+    freshness.balance={state:'ready',at:new Date().toISOString()}; notifyActivity();
     renderAll();
     if (data.current_points > previousPoints) window.EcoMotion?.transfer('points',document.getElementById('dash-points-balance'));
+    return true;
+    } catch(error) { freshness.balance.state='error'; notifyActivity(); throw error; }
   }
 
   async function loginStudent(studentId) {
@@ -280,6 +295,7 @@
 
         if (data && !error) {
           activeStudent = data;
+          freshness.balance={state:'ready',at:new Date().toISOString()}; notifyActivity();
           await fetchStudentCoupons();
           await fetchStudentRecycleLogs();
           renderAll();
@@ -338,15 +354,20 @@
       collectionState.coupons = 'error'; renderCoupons(); return false;
     }
   }
-  async function fetchStudentRecycleLogs() {
+  async function fetchStudentRecycleLogs(append = false) {
     if (!activeStudent || !supabaseClient || collectionState.history === 'loading') return false;
-    collectionState.history = 'loading'; renderHistory();
+    collectionState.history = 'loading'; freshness.history.state='loading'; notifyActivity(); renderHistory();
+    const offset=append?historyOffset:0;
     try {
-      const { data, error } = await supabaseClient.from('recycle_logs').select('*').eq('student_id', activeStudent.student_id).order('created_at', { ascending:false }).limit(15);
+      const { data, error } = await supabaseClient.from('recycle_logs').select('*').eq('student_id', activeStudent.student_id).order('log_id', { ascending:false }).range(offset,offset+14);
       if (error || !Array.isArray(data)) throw Error('History unavailable');
-      recycleLogsData = data; collectionState.history = 'ready'; renderHistory(); renderDashboard(); return true;
+      const combined=append?[...recycleLogsData,...data]:data;
+      recycleLogsData=[...new Map(combined.map(log=>[String(log.log_id),log])).values()];
+      historyOffset=offset+data.length; historyMore=data.length===15;
+      collectionState.history = 'ready'; freshness.history={state:'ready',at:new Date().toISOString()};
+      renderHistory(); renderDashboard(); notifyActivity(); return true;
     } catch {
-      collectionState.history = 'error'; renderHistory(); renderDashboard(); return false;
+      collectionState.history = 'error'; freshness.history.state='error'; renderHistory(); renderDashboard(); notifyActivity(); return false;
     }
   }
 
@@ -419,12 +440,12 @@
 
     let petCount = 0;
     let canCount = 0;
-    recycleLogsData.forEach(l => {
+    recycleLogsData.slice(0,15).forEach(l => {
       if (l.item_type === 'PET') petCount += 1;
       else if (l.item_type === 'CAN') canCount += 1;
     });
 
-    document.getElementById('dash-pet-count').textContent = collectionState.history === 'ready' ? `${petCount} ชิ้น` : '—';
+    document.getElementById('dash-pet-count').textContent = (freshness.history.at || collectionState.history === 'ready') ? `${petCount} ชิ้น` : '—';
     document.getElementById('dash-can-count').textContent = collectionState.history === 'ready' ? `${canCount} ชิ้น` : '—';
 
     const rankInfo = getRankInfo(activeStudent.total_bottles_recycled);
@@ -435,7 +456,7 @@
 
   function renderHistory() {
     const listEl = document.getElementById('recent-history-list');
-    if (renderCollectionState(listEl, 'history')) return;
+    if (!recycleLogsData.length && renderCollectionState(listEl, 'history')) return;
     listEl.setAttribute('aria-busy', 'false');
     let filteredLogs = recycleLogsData;
     if (selectedHomeCategory !== 'all') {
@@ -445,19 +466,20 @@
     if (filteredLogs.length > 0) {
       listEl.innerHTML = filteredLogs.map(log => {
         const isPet = log.item_type === 'PET';
+        const rejected = log.item_type === 'REJECT';
         return `
-          <div class="bg-surface-container-lowest p-3 rounded-[20px] border-2 border-secondary-container flex items-center justify-between shadow-sm">
+          <button type="button" data-history-id="${log.log_id}" class="history-row bg-surface-container-lowest p-3 rounded-[20px] border-2 border-secondary-container flex items-center justify-between shadow-sm">
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded-[14px] ${isPet ? 'bg-[#E3F2FD] text-[#1976D2]' : 'bg-[#FFF9C4] text-[#F57F17]'} flex items-center justify-center font-bold">
                 <span class="material-symbols-rounded">${isPet ? 'water_bottle' : 'inventory_2'}</span>
               </div>
               <div>
-                <h4 class="font-display font-extrabold text-[14px] text-on-surface">${isPet ? 'ขวดพลาสติกใส PET' : 'กระป๋องอะลูมิเนียม CAN'}</h4>
-                <p class="text-[11px] text-on-surface-variant font-bold">${new Date(log.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.</p>
+                <h4 class="font-display font-extrabold text-[14px] text-on-surface">${rejected ? 'ส่งคืน / ไม่รับวัสดุ' : isPet ? 'ขวดพลาสติกใส PET' : 'กระป๋องอะลูมิเนียม CAN'}</h4>
+                <p class="text-[11px] text-on-surface-variant font-bold">${new Date(log.created_at).toLocaleString('th-TH', {timeZone:'Asia/Bangkok',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} น.</p>
               </div>
             </div>
-            <span class="font-display font-black text-[15px] text-primary bg-primary-container/20 px-2.5 py-1 rounded-full">+${log.points_earned} Pts</span>
-          </div>
+            <span class="font-display font-black text-[15px] text-primary bg-primary-container/20 px-2.5 py-1 rounded-full">${log.points_earned>0?'+':''}${log.points_earned} Pts</span>
+          </button>
         `;
       }).join('');
     } else {
@@ -1239,9 +1261,8 @@
       button.disabled = true;
       button.setAttribute('aria-busy', 'true');
       try {
-        await refreshStudentBalance();
-        const loaded = await fetchStudentRecycleLogs();
-        if (!loaded) throw Error('โหลดประวัติล่าสุดไม่สำเร็จ กรุณาลองใหม่');
+        const results=await Promise.allSettled([refreshStudentBalance(),fetchStudentRecycleLogs()]);
+        if(results[0].status==='rejected'||results[1].status==='rejected'||results[1].value!==true) throw Error('อัปเดตข้อมูลได้ไม่ครบ กรุณาดูสถานะแต่ละส่วนแล้วลองใหม่');
         showToast('อัปเดตแต้มและประวัติล่าสุดแล้ว', 'success');
       } catch (error) {
         showToast(error.message || 'รีเฟรชข้อมูลไม่สำเร็จ', 'error');
@@ -1366,5 +1387,11 @@
     });
   }
 
+  window.StudentActivity = {
+    get student(){return activeStudent;}, get logs(){return recycleLogsData;}, get freshness(){return freshness;},
+    get more(){return historyMore;}, get historyLoading(){return collectionState.history==='loading';},
+    history:fetchStudentRecycleLogs,
+    rpc(name,args){if(!supabaseClient)return Promise.resolve({error:{message:'กรุณาเข้าสู่ระบบก่อน'}});return supabaseClient.rpc(name,args);}
+  };
   document.addEventListener('DOMContentLoaded', initApp);
 })();
