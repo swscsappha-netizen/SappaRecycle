@@ -1,0 +1,34 @@
+:root{--friend-ink:#252c27;--friend-paper:#fffaf0;--friend-green:#b4db92;--friend-blue:#b8e1ed;--friend-yellow:#ffdc77;--friend-navy:#536da0;--friend-line:2px solid var(--friend-ink)}
+.eco-friend{position:relative;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;pointer-events:none;user-select:none;overflow:visible}
+.eco-friend>svg{width:100%;height:100%;overflow:visible}
+.eco-friend .friend-cat,.eco-friend .friend-rabbit,.eco-friend .friend-bird{display:none}
+.eco-friend[data-character="cat"] .friend-cat,.eco-friend[data-character="rabbit"] .friend-rabbit,.eco-friend[data-character="bird"] .friend-bird{display:block}
+.eco-friend .friend-worry,.eco-friend .friend-prop{display:none}
+.eco-friend .friend-body{transform-origin:120px 230px;animation:friend-breathe 5s ease-in-out infinite}
+.eco-friend .friend-eyes{transform-box:fill-box;transform-origin:center;animation:friend-blink 5.4s infinite}
+.eco-friend[data-pose="wave"] .friend-arm-right{transform-box:fill-box;transform-origin:left bottom;animation:friend-wave 2.4s ease-in-out infinite}
+.eco-friend[data-pose="point"] .friend-arm-right{transform:rotate(36deg);transform-box:fill-box;transform-origin:left bottom}
+.eco-friend[data-pose="guide"] .friend-prop{display:block;animation:friend-offer 5s ease-in-out infinite}
+.eco-friend[data-pose="guide"] .friend-arm-left{transform-box:fill-box;transform-origin:right top;animation:friend-help 5s ease-in-out infinite}
+.eco-friend[data-pose="walk"] .friend-leg{transform-box:fill-box;transform-origin:top center;animation:friend-step .65s ease-in-out infinite alternate}
+.eco-friend[data-pose="walk"] .friend-leg-right{animation-delay:-.65s}
+.eco-friend[data-pose="walk"] .friend-body{animation:friend-hop .65s ease-in-out infinite}
+.eco-friend[data-pose="wait"] .friend-body{animation:friend-wait 4.5s ease-in-out infinite}
+.eco-friend[data-pose="happy"] .friend-body{animation:friend-hop 1.3s ease-in-out 3}
+.eco-friend[data-pose="happy"] .friend-arm{transform-box:fill-box;transform-origin:center;animation:friend-wave 1.3s ease-in-out 3}
+.eco-friend[data-pose="alert"] .friend-smile{display:none}
+.eco-friend[data-pose="alert"] .friend-worry{display:block}
+.eco-friend[data-pose="alert"] .friend-body{animation:none;transform:rotate(-4deg)}
+.eco-friend[data-still="true"] *,.friend-paused *,.motion-paused .eco-friend *,.tab-pane:not(.active) .eco-friend *{animation-play-state:paused!important}
+.friend-speech{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);padding:5px 10px;white-space:nowrap;border:var(--friend-line);border-radius:14px;background:var(--friend-paper);font-size:11px;font-weight:800;color:var(--friend-ink)}
+@keyframes friend-breathe{50%{transform:translateY(-3px) rotate(1deg)}}
+@keyframes friend-blink{0%,43%,47%,100%{transform:scaleY(1)}45%{transform:scaleY(.12)}}
+@keyframes friend-wave{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(-24deg)}}
+@keyframes friend-step{from{transform:rotate(-12deg)}to{transform:rotate(12deg)}}
+@keyframes friend-hop{50%{transform:translateY(-7px) rotate(2deg)}}
+@keyframes friend-wait{50%{transform:rotate(-3deg) translateY(2px)}}
+@keyframes friend-offer{0%,100%{transform:translate(0,0)}50%,70%{transform:translate(14px,7px) rotate(8deg)}}
+@keyframes friend-help{50%{transform:rotate(12deg)}}
+.friend-transfer{position:fixed;z-index:160;pointer-events:none;display:grid;place-items:center;width:42px;height:42px;border:var(--friend-line);border-radius:14px;background:var(--friend-yellow);color:var(--friend-ink);font-size:24px;box-shadow:3px 3px 0 var(--friend-ink)}
+@media(prefers-reduced-motion:reduce){.eco-friend *,.friend-transfer{animation:none!important;transition:none!important;transform:none!important}}
+.eco-friend svg{width:100%;height:100%;overflow:visible}

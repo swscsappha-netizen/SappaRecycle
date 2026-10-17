@@ -82,8 +82,8 @@
   </script>
 
   <link rel="stylesheet" href="index.css?v=4">
-<link rel="stylesheet" href="school-theme.css?v=3"></head>
-<body class="bg-surface text-on-surface font-body min-h-screen pb-28 md:pb-32 flex justify-center selection:bg-primary-container selection:text-white">
+<link rel="stylesheet" href="school-theme.css?v=4"><link rel="stylesheet" href="friends.css?v=1"><script src="friends-motion.js?v=1" defer></script></head>
+<body class="friend-world bg-surface text-on-surface font-body min-h-screen pb-28 md:pb-32 flex justify-center selection:bg-primary-container selection:text-white">
   
   <!-- ===================================================================
        FULL-SCREEN SPLASH SCREEN LOADER (หน้าจอโหลดก่อนเข้าใช้งาน)
@@ -144,7 +144,7 @@
            =================================================================== -->
       <section class="tab-pane active flex-col gap-4 sm:gap-5" id="tab-home">
         
-        <div class="school-story-card"><img class="school-story" src="assets/school-eco.svg" alt="เพื่อนขวดและกระป๋องชวนรีไซเคิลในโรงเรียน" width="760" height="300"><span class="school-story-caption">โรงเรียนของเรา โลกของเรา</span></div><!-- Balance Header Card -->
+        <div class="school-story-card"><span class="club-stamp">ทำดีให้โลก<br>ทีละขวด</span><div class="school-story" data-school-scene role="img" aria-label="แก๊งนักเรียนรักษ์โลกในโรงเรียน"></div><span class="school-story-caption">โรงเรียนของเรา โลกของเรา</span></div><!-- Balance Header Card -->
         <div class="balance-hero bg-surface-container-lowest rounded-[28px] sm:rounded-[32px] p-4 sm:p-6 reward-card flex flex-col items-center justify-between gap-4 sm:gap-5 relative overflow-hidden">
           <div class="eco-orbit" aria-hidden="true"><span class="material-symbols-rounded">eco</span><span class="material-symbols-rounded">water_bottle</span><span class="material-symbols-rounded">auto_awesome</span></div>
           <div class="eco-eyebrow"><span class="eco-dot" aria-hidden="true"></span> SMALL STEPS, GREENER WORLD</div>
@@ -535,7 +535,7 @@
           </div>
         </div>
 
-        <div class="school-welcome"><img class="school-story" src="assets/school-eco.svg" alt="โรงเรียนรักษ์โลก" width="760" height="300"><span class="welcome-kicker">YOUR GREEN JOURNEY</span><h4>เริ่มสะสมแต้ม<br>เพื่อโลกที่สดใสกว่า</h4><p>ยืนยัน Google โรงเรียนครั้งแรกเท่านั้น<br><strong>เลขประจำตัว 5 หลัก@sappha.ac.th</strong></p><div class="welcome-steps"><span>✓ LINE</span><span>02 ยืนยันอีเมล</span><span>03 ดูแต้ม</span></div></div>
+        <div class="school-welcome"><div class="login-friends" aria-hidden="true"><span data-friend="cat" data-pose="wave"></span><span data-friend="rabbit" data-pose="guide"></span><span data-friend="bird" data-pose="wave"></span></div><span class="welcome-kicker">YOUR GREEN JOURNEY</span><h4>เริ่มสะสมแต้ม<br>เพื่อโลกที่สดใสกว่า</h4><p>ยืนยัน Google โรงเรียนครั้งแรกเท่านั้น<br><strong>เลขประจำตัว 5 หลัก@sappha.ac.th</strong></p><div class="welcome-steps"><span>✓ LINE</span><span>02 ยืนยันอีเมล</span><span>03 ดูแต้ม</span></div></div>
         <div class="pt-2">
           <button class="w-full bg-primary text-on-primary font-display font-extrabold py-3.5 rounded-[20px] btn-squishy hover:bg-primary-container border-b-4 border-on-primary-container cursor-pointer text-[15px] shadow-lg flex items-center justify-center gap-2" id="btn-confirm-line-bind">
             เข้าสู่ระบบ Google ของโรงเรียน
@@ -584,6 +584,6 @@
 
   <script src="secure-client.js?v=2"></script>
   <script src="school-auth.js?v=2"></script>
-  <script src="app.js?v=5"></script>
-</body>
+  <script src="app.js?v=6"></script>
+<dialog id="reward-detail" class="friend-detail" aria-labelledby="reward-detail-title"><div class="detail-top"><span class="friend-kicker">ของขวัญจากการรักษ์โลก</span><button type="button" data-close-detail aria-label="ปิดรายละเอียด">✕</button></div><div class="detail-art"><span data-friend="rabbit" data-pose="point" aria-hidden="true"></span><img id="reward-detail-image" alt=""></div><h2 id="reward-detail-title"></h2><p id="reward-detail-cost"></p><p id="reward-detail-stock"></p><p class="detail-note">เมื่อแลกสำเร็จ จะได้รับคูปองสำหรับนำไปรับของที่ห้องสภานักเรียน</p><button type="button" id="reward-detail-confirm">ยืนยันแลกรางวัล</button><p id="reward-detail-status" role="status" aria-live="polite"></p></dialog></body>
 </html>

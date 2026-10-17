@@ -216,6 +216,7 @@
       : 'check_circle';
 
     toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-[20px] border-2 shadow-xl backdrop-blur-md animate-bounce-in transition-all duration-300 ${bgClass}`;
+    window.EcoMotion?.status(isError ? 'error' : isWarning ? 'wait' : 'idle');
     toast.innerHTML = `
       <span class="material-symbols-rounded text-xl shrink-0" style="font-variation-settings: 'FILL' 1;">${iconName}</span>
       <span class="font-display font-extrabold text-[13px] leading-tight flex-1">${message}</span>
@@ -262,8 +263,10 @@
     const { data, error } = await supabaseClient.from('students')
       .select('*').eq('student_id', activeStudent.student_id).single();
     if (error || !data) throw new Error('โหลดแต้มล่าสุดไม่สำเร็จ');
+    const previousPoints = activeStudent.current_points;
     activeStudent = data;
     renderAll();
+    if (data.current_points > previousPoints) window.EcoMotion?.transfer('points',document.getElementById('dash-points-balance'));
   }
 
   async function loginStudent(studentId) {
@@ -295,8 +298,10 @@
   function renderCollectionState(element, name) {
     if (!element) return true;
     const state = collectionState[name];
-    if (state === 'ready') return false;
+    const shown = ({ 'tab-home':'history', 'tab-rewards':'rewards', 'tab-coupons':'coupons' })[currentTab] === name;
+    if (state === 'ready') { if(shown) window.EcoMotion?.status('idle'); return false; }
     const failed = state === 'error';
+    if(shown) window.EcoMotion?.status(failed ? 'error' : state === 'loading' ? 'loading' : 'idle');
     element.setAttribute('aria-busy', String(state === 'loading'));
     element.innerHTML = '<div class="collection-status col-span-2" role="status"><span class="material-symbols-rounded" aria-hidden="true">' + (failed ? 'cloud_off' : 'hourglass_top') + '</span><p>' + (failed ? 'โหลดข้อมูลไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่' : state === 'idle' ? 'ข้อมูลจะแสดงเมื่อเข้าสู่ระบบแล้ว' : 'กำลังโหลดข้อมูลล่าสุด...') + '</p>' + (failed ? '<button type="button" data-retry-collection="' + name + '">ลองใหม่</button>' : '') + '</div>';
     return true;
@@ -500,31 +505,31 @@
             
             <div class="absolute -top-2.5 -right-1.5 sm:-top-3 sm:-right-2 bg-surface-container-lowest px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border-2 shadow-sm rotate-3 illustrative-badge ${isSoldOut ? 'border-surface-variant text-on-surface-variant' : r.stock_quantity <= 3 ? 'border-error-container text-error' : 'border-[#BBDEFB] text-[#1976D2]'}">
               <span class="font-display text-[11px] sm:text-[13px] font-black tracking-tight whitespace-nowrap">
-                ${isSoldOut ? '0 Left' : r.stock_quantity + ' Left'}
+                ${isSoldOut ? 'หมดแล้ว' : 'เหลือ ' + r.stock_quantity + ' ชิ้น'}
               </span>
             </div>
           </div>
 
           <div class="p-2 sm:p-3 pt-3 sm:pt-4 flex flex-col flex-grow justify-between gap-2.5 sm:gap-3.5 text-center">
             <div>
-              <h3 class="font-display text-[13px] sm:text-[16px] text-on-surface font-extrabold leading-tight tracking-tight line-clamp-2">${r.title}</h3>
+              <button type="button" class="btn-detail" data-detail-reward="${r.reward_id}">ดูรายละเอียด</button><h3 class="font-display text-[13px] sm:text-[16px] text-on-surface font-extrabold leading-tight tracking-tight line-clamp-2">${r.title}</h3>
               <p class="font-display text-[13px] sm:text-[15px] text-[#F57F17] mt-0.5 sm:mt-1 font-black">${r.points_required.toLocaleString()} Pts</p>
             </div>
 
             ${isSoldOut ? `
               <button class="w-full bg-surface-variant text-on-surface-variant font-display text-[12px] sm:text-[14px] font-extrabold py-2.5 sm:py-3 rounded-[16px] sm:rounded-[20px] cursor-not-allowed btn-disabled flex items-center justify-center gap-1" onclick="window.showToast('ของรางวัลนี้หมดสต็อกชั่วคราว', 'warning')">
                 <span class="material-symbols-rounded text-base sm:text-lg" style="font-variation-settings: 'FILL' 1;">block</span>
-                Sold Out
+                หมดชั่วคราว
               </button>
             ` : isInsufficient ? `
               <button class="w-full bg-surface-variant text-on-surface-variant font-display text-[11px] sm:text-[13px] font-extrabold py-2.5 sm:py-3 rounded-[16px] sm:rounded-[20px] cursor-pointer border-b-4 border-outline-variant flex items-center justify-center gap-1 hover:bg-surface-variant/80" onclick="window.showToast('สะสมอีก ${neededPts.toLocaleString()} แต้มเพื่อแลกชิ้นนี้ (หยอดขวด PET เพิ่มอีก ${Math.ceil(neededPts / 10)} ขวดนะ!)', 'info')">
                 <span class="material-symbols-rounded text-base sm:text-lg" style="font-variation-settings: 'FILL' 1;">lock</span>
-                Need ${neededPts.toLocaleString()}
+                อีก ${neededPts.toLocaleString()} แต้ม
               </button>
             ` : `
               <button class="w-full bg-primary-container text-on-primary font-display text-[13px] sm:text-[15px] font-extrabold py-2.5 sm:py-3 rounded-[16px] sm:rounded-[20px] btn-squishy hover:bg-primary border-b-4 border-on-primary-container flex items-center justify-center gap-1 shadow-sm btn-redeem cursor-pointer" data-reward-id="${r.reward_id}">
                 <span class="material-symbols-rounded text-base sm:text-lg" style="font-variation-settings: 'FILL' 1;">redeem</span>
-                Redeem
+                ดูรายละเอียดเพื่อแลก
               </button>
             `}
           </div>
@@ -532,10 +537,11 @@
       `;
     }).join('');
 
+    grid.querySelectorAll('[data-detail-reward]').forEach(btn => btn.addEventListener('click', () => openRewardDetail(btn.dataset.detailReward,btn)));
     grid.querySelectorAll('.btn-redeem').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const rId = e.currentTarget.getAttribute('data-reward-id');
-        attemptRedeemReward(rId);
+        openRewardDetail(rId, e.currentTarget);
       });
     });
   }
@@ -562,7 +568,7 @@
       `;
     } else {
       listEl.innerHTML = displayList.map(c => `
-        <div class="bg-surface-container-lowest rounded-[28px] p-4 reward-card flex items-center justify-between cursor-pointer hover:border-primary-container transition-all" data-code="${c.coupon_code}">
+        <div class="bg-surface-container-lowest rounded-[28px] p-4 reward-card flex items-center justify-between cursor-pointer hover:border-primary-container transition-all" data-code="${c.coupon_code}" role="button" tabindex="0" aria-label="${c.status === 'ACTIVE' ? 'แสดงคูปอง' : 'คูปองใช้แล้ว'}">
           <div class="flex items-center gap-3">
             <div class="w-11 h-11 rounded-[16px] ${c.status === 'ACTIVE' ? 'bg-primary-container/20 text-primary' : 'bg-surface-variant text-on-surface-variant'} flex items-center justify-center">
               <span class="material-symbols-rounded text-2xl">${c.status === 'ACTIVE' ? 'local_activity' : 'check_circle'}</span>
@@ -573,14 +579,17 @@
             </div>
           </div>
           <div class="${c.status === 'ACTIVE' ? 'bg-primary-container text-on-primary' : 'bg-surface-variant text-on-surface-variant'} font-display font-extrabold text-[12px] px-3.5 py-1.5 rounded-[16px] flex items-center gap-1 shadow-sm">
-            <span class="material-symbols-rounded text-sm">qr_code</span> ${c.status === 'ACTIVE' ? 'View QR' : 'ใช้แล้ว'}
+            <span class="material-symbols-rounded text-sm">qr_code</span> ${c.status === 'ACTIVE' ? 'แสดง QR' : 'ใช้แล้ว'}
           </div>
         </div>
       `).join('');
 
       listEl.querySelectorAll('.reward-card').forEach(card => {
+        card.addEventListener('keydown', event => { if(event.key === 'Enter' || event.key === ' ') {event.preventDefault();card.click();} });
         card.addEventListener('click', () => {
           const code = card.getAttribute('data-code');
+          const coupon = couponsData.find(c=>c.coupon_code===code);
+          if(coupon?.status !== 'ACTIVE') { showToast('คูปองนี้ใช้รับของรางวัลแล้ว', 'info'); return; }
           showCouponQRModal(code);
         });
       });
@@ -652,6 +661,28 @@
     pendingRedeemReward = null;
   }
 
+  let detailRewardId=null,detailOrigin=null;
+  function closeRewardDetail() {
+    const dialog=document.getElementById('reward-detail');
+    if(dialog?.open) dialog.close();
+    detailOrigin?.focus();
+  }
+  function openRewardDetail(id, origin) {
+    const reward=rewardsData.find(r=>r.reward_id===id);
+    const dialog=document.getElementById('reward-detail');
+    if(!reward||!dialog)return;
+    detailRewardId=id;detailOrigin=origin;
+    document.getElementById('reward-detail-title').textContent=reward.title;
+    const image=document.getElementById('reward-detail-image');image.src=reward.image_url;image.alt=reward.title;
+    document.getElementById('reward-detail-cost').textContent=reward.points_required.toLocaleString()+' แต้ม';
+    document.getElementById('reward-detail-stock').textContent='คงเหลือ '+reward.stock_quantity+' ชิ้น';
+    document.getElementById('reward-detail-status').textContent='';
+    const confirm=document.getElementById('reward-detail-confirm');
+    confirm.disabled=!activeStudent||activeStudent.current_points<reward.points_required||reward.stock_quantity<=0;
+    dialog.showModal();window.EcoMotion?.expand?.(dialog,origin?.closest?.('.reward-card') || origin);window.EcoMotion?.hydrate();
+  }
+
+  let redeemBusy=false;
   async function executeRedemption(reward) {
     if (activeStudent.current_points < reward.points_required) {
       showToast('แต้มสะสมไม่เพียงพอ', 'warning');
@@ -662,6 +693,10 @@
       return;
     }
 
+    if (redeemBusy || !supabaseClient) return;
+    redeemBusy=true;
+    const detailButton=document.getElementById('reward-detail-confirm');
+    if(detailButton) detailButton.disabled=true;
     const uniqueToken = 'CPN-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
 
     if (supabaseClient) {
@@ -674,18 +709,22 @@
 
         if (error) throw new Error(error.message);
       } catch (err) {
+        redeemBusy=false;if(detailButton) detailButton.disabled=false;
+        const status=document.getElementById('reward-detail-status');if(status)status.textContent='ยังแลกไม่สำเร็จ กรุณาลองใหม่';
         showToast(err.message || "แลกรางวัลไม่สำเร็จ", "error");
         return;
       }
     }
 
+    closeRewardDetail();
     await loginStudent(activeStudent.student_id);
     await fetchRewards();
 
     if (typeof confetti === 'function') {
-      confetti({ particleCount: 70, spread: 80, origin: { y: 0.6 } });
+      confetti({ particleCount: 35, spread: 65, colors:['#b4db92','#b8e1ed','#ffdc77'],disableForReducedMotion:true,origin: { y: 0.6 } });
     }
-    showCouponQRModal(uniqueToken);
+    redeemBusy=false;showCouponQRModal(uniqueToken);
+    window.EcoMotion?.transfer('coupon',document.getElementById('modal-qr-title'));
   }
 
   function showCouponQRModal(couponCode) {
@@ -1111,6 +1150,8 @@
   // 8. Navigation & Event Binding
   // --------------------------------------------------------------------------
   function switchTab(tabId) {
+    if (!document.getElementById(tabId)) return;
+    window.EcoMotion?.navigate(tabId);
     currentTab = tabId;
     
     // Switch Views
@@ -1132,7 +1173,7 @@
     }
 
     // Scroll to top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'auto' });
   }
 
   async function saveStudentPhone(phone) {
@@ -1144,6 +1185,9 @@
   }
 
   function bindEvents() {
+    document.querySelector('[data-close-detail]')?.addEventListener('click',closeRewardDetail);
+    document.getElementById('reward-detail-confirm')?.addEventListener('click',()=>{ if(detailRewardId) { const reward=rewardsData.find(r=>r.reward_id===detailRewardId); if(reward&&!redeemBusy) { if(!activeStudent.phone_number)closeRewardDetail(); attemptRedeemReward(detailRewardId); } } });
+
     // 1. Nav tabs
     document.querySelectorAll('.nav-tab-btn[data-tab]').forEach(btn => {
       btn.addEventListener('click', (e) => {

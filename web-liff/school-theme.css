@@ -1,32 +1,43 @@
-:root{--eco-ink:#203c32;--eco-paper:#fffdf3;--eco-green:#58b38b;--eco-yellow:#ffdc67;--eco-blue:#91cce8}
-.school-story{display:block;width:100%;height:auto;border-radius:24px}
-body{background:#f7f4e8;color:var(--eco-ink)}
-.balance-hero,.reward-card{background:var(--eco-paper);border:2px solid var(--eco-ink);box-shadow:4px 5px 0 #203c32;border-radius:24px}
-.balance-hero{background:#d9f3df}.eco-eyebrow{color:#203c32}.eco-orbit{display:none}
-.school-story-card{position:relative;overflow:hidden;border-radius:24px;flex-shrink:0}
-.school-story-caption{position:absolute;bottom:12px;left:16px;background:#fffdf3;border:2px solid #203c32;border-radius:12px;padding:5px 10px;font-size:11px;font-weight:800;transform:rotate(-2deg)}
-.btn-squishy{border:2px solid #203c32!important;box-shadow:3px 4px 0 #203c32!important;border-radius:16px!important}
-.btn-squishy:active:not(:disabled){transform:translate(2px,2px);box-shadow:1px 2px 0 #203c32!important;border-bottom-width:2px!important}
-#bottom-nav{border-top:2px solid #203c32;background:#fffdf3!important;backdrop-filter:none}
-.school-welcome{background:#fffdf3!important}.school-welcome .school-story{max-height:160px;object-fit:contain;margin-bottom:12px}
-.tab-pane.active{animation:schoolEnter .3s ease-out both}.tab-pane.active>*{animation:none}
-@keyframes schoolEnter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
-
-/* Every student tab uses the same school eco surfaces and touch targets. */
-.collection-status { width:100%;padding:28px 18px;border:2px dashed #78998a;border-radius:22px;background:#fffdf3;color:#355e48;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;font-weight:700;font-size:13px; }
-.collection-status>.material-symbols-rounded { font-size:32px; }
-.collection-status button { min-height:44px;padding:8px 22px;border:2px solid #203c32;border-radius:14px;background:#ffdc67;box-shadow:2px 3px 0 #203c32; }
-#tab-rewards,#tab-coupons,#tab-profile { scroll-margin-top:80px; }
-#tab-rewards>.px-1,#tab-coupons>.px-1,#tab-profile>.px-1 { padding:16px;border:2px solid #203c32;border-radius:22px;background:#d9f3df; }
-#tab-coupons>.px-1 { background:#fff3ce; }
-#tab-profile>.px-1 { background:#dceef8; }
-.cat-pill,.c-tab,.store-cat-pill { min-height:44px; }
-#bottom-nav button { min-height:48px; }
-button:disabled { cursor:not-allowed;opacity:.6; }
-button[aria-busy="true"] { cursor:wait; }
-@media(max-width:380px) { #bottom-nav button { padding-left:7px;padding-right:7px; } .collection-status { padding:20px 12px; } }
-.identity-retry { position:fixed;inset:0;z-index:180;display:grid;place-items:center;padding:24px;background:#fffdf3ed; }
-.identity-retry>div { max-width:400px;padding:28px;border:2px solid #203c32;border-radius:24px;background:#d9f3df;box-shadow:4px 5px 0 #203c32;text-align:center; }
-.identity-retry h2 { font-size:22px;font-weight:800; }.identity-retry p { margin:12px 0;font-size:14px; }
-.identity-retry button { min-height:44px;padding:8px 24px;border:2px solid #203c32;border-radius:14px;background:#ffdc67;font-weight:800; }
+/* One visual system for the student portal. The separate admin page does not load this file. */
+.friend-world{--primary:#35634c;color:var(--friend-ink);background:var(--friend-paper)!important;background-image:none;background-attachment:initial;font-family:Prompt,sans-serif}
+.friend-world header{background:var(--friend-paper)!important;padding-bottom:12px}
+.friend-world header #btn-header-logo>div:first-child{border:var(--friend-line);background:var(--friend-green);border-radius:16px;box-shadow:2px 2px 0 var(--friend-ink)}
+.friend-world header h1{color:var(--friend-ink)}
+.friend-world main{min-width:0}.friend-world .tab-pane{animation:none!important}.friend-world .tab-pane>*{animation:none!important}
+.friend-guide{display:grid;grid-template-columns:minmax(0,1fr) 160px;align-items:center;gap:8px;background:#e6efd6;border:var(--friend-line);border-radius:27px;padding:17px 17px 10px;margin-bottom:22px;box-shadow:4px 5px 0 var(--friend-ink);isolation:isolate;min-height:130px}
+.friend-kicker{display:block;font-size:9px;letter-spacing:1.4px;font-weight:900;color:#56704a}
+.friend-guide h2{font-size:clamp(16px,3vw,21px);font-weight:900;line-height:1.3;margin:6px 0;color:var(--friend-ink)}
+.friend-guide p{font-size:11px;line-height:1.65;color:#596551}
+.guide-actors{display:flex;align-items:flex-end;justify-content:center;min-height:98px}
+.guide-actors .eco-friend{width:44px;height:60px;transform-origin:center bottom}
+.guide-actors .eco-friend[data-active="true"]{width:76px;height:95px;z-index:2}
+.friend-guide[data-scene="rewards"]{background:#dceef4}.friend-guide[data-scene="coupons"]{background:#fff0bf}.friend-guide[data-scene="profile"]{background:#eadfec}.friend-guide[data-scene="scanner"]{background:#e0e9e5}
+.school-story{display:block;width:100%;height:auto;border-radius:24px}.school-story-card{position:relative;border-radius:28px;overflow:hidden}
+.school-story-caption{position:absolute;bottom:13px;left:14px;background:var(--friend-paper);padding:5px 10px;border:var(--friend-line);border-radius:13px;font-size:10px;font-weight:800;transform:rotate(-2deg)}
+.club-stamp{position:absolute;top:14px;right:15px;width:66px;height:66px;display:grid;place-items:center;text-align:center;background:var(--friend-yellow);border:var(--friend-line);border-radius:50%;font-size:12px;font-weight:900;line-height:1.3;transform:rotate(9deg);z-index:1}
+.friend-world .balance-hero,.friend-world .reward-card{border:var(--friend-line);border-radius:27px;background:#fffef9;box-shadow:4px 5px 0 var(--friend-ink)}
+.friend-world .balance-hero{background:#e6efd6;isolation:isolate}.friend-world .balance-hero>.absolute{display:none}.eco-orbit{display:none}.eco-eyebrow{font-size:9px;letter-spacing:1px;color:#46613d;font-weight:800;align-self:flex-start}.eco-dot{width:6px;height:6px;background:#65ad8d;border-radius:50%;display:inline-block}
+#dash-points-balance{font-variant-numeric:tabular-nums;letter-spacing:-2px;color:var(--friend-ink)}
+.friend-world .illustrative-badge{box-shadow:2px 2px 0 var(--friend-ink);border-color:var(--friend-ink)}
+.friend-world .btn-squishy,.friend-world .collection-status button{border:var(--friend-line)!important;border-bottom-width:2px!important;border-radius:16px!important;box-shadow:3px 4px 0 var(--friend-ink)!important;transition:transform .16s ease,box-shadow .16s ease;min-height:44px;background:#65ad8d;color:#142d22}
+.friend-world .btn-squishy:active:not(:disabled){transform:translate(2px,2px);box-shadow:1px 2px 0 var(--friend-ink)!important;margin-top:0}
+.friend-world button:focus-visible,.friend-world a:focus-visible{outline:3px solid var(--friend-navy);outline-offset:4px}
+.friend-world button:disabled{opacity:.55;cursor:not-allowed}.friend-world button[aria-busy="true"]{cursor:wait}
+#bottom-nav{background:var(--friend-paper)!important;border-top:var(--friend-line);box-shadow:none!important;backdrop-filter:none!important}#bottom-nav button{min-height:48px}.nav-tab-btn.active{background:var(--friend-green)!important;border-radius:18px;color:var(--friend-ink)!important}
+#tab-rewards>.px-1,#tab-coupons>.px-1,#tab-profile>.px-1,#view-scanner>.px-1{padding:18px;border:var(--friend-line);border-radius:23px;background:var(--friend-blue)}
+#tab-coupons>.px-1{background:var(--friend-yellow)}#tab-profile>.px-1{background:#eadfec}#view-scanner>.px-1{background:#e0e9e5}
+.cat-pill,.c-tab,.store-cat-pill{min-height:44px}.friend-world .cat-pill.active,.friend-world .c-tab.active{background:var(--friend-yellow);color:var(--friend-ink)}
+.collection-status{padding:28px 18px;width:100%;border:2px dashed #74846b;border-radius:23px;background:#fffdf6;color:#52614a;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;font-size:13px;font-weight:700}
+.collection-status>.material-symbols-rounded{font-size:32px}.collection-status button{padding:8px 22px}
+.school-welcome{background:var(--friend-paper)!important;border-radius:24px;padding-top:15px!important}.school-welcome>.school-story{display:none}.school-welcome h4{font-size:27px;color:var(--friend-ink)}.school-welcome p{font-size:12px;line-height:1.7}.welcome-kicker{font-size:9px;letter-spacing:1.2px;font-weight:800}.welcome-steps{display:flex;gap:7px;justify-content:center;font-size:10px;margin-top:14px}.welcome-steps span{padding:5px 8px;background:#e6efd6;border-radius:10px}
+.login-friends{display:flex;align-items:flex-end;justify-content:center;margin:10px 0 18px}.login-friends .eco-friend{width:90px;height:110px}.login-friends .eco-friend:first-child{width:114px;height:134px}.school-welcome .welcome-kicker{display:block;text-align:center}
+#modal-line-bind>div:last-child,#modal-phone-required>div:last-child,#modal-qr-presentation>div:last-child,#modal-council-verify>div:last-child,#modal-bind-success>div:last-child{border:var(--friend-line)!important;background:var(--friend-paper)!important;box-shadow:5px 6px 0 var(--friend-ink)!important;max-height:90dvh;overflow-y:auto}
+.friend-detail{width:min(430px,calc(100vw - 28px));padding:24px;background:var(--friend-paper);border:var(--friend-line);border-radius:28px;box-shadow:5px 6px 0 var(--friend-ink);color:var(--friend-ink);max-height:88dvh;overflow:auto;margin:auto}
+.friend-detail::backdrop{background:#252c2777}.detail-top{display:flex;justify-content:space-between;align-items:center;gap:12px}.detail-top button{min-width:44px;min-height:44px;border:var(--friend-line);border-radius:50%;background:#fffef9}.detail-art{position:relative;display:flex;align-items:center;justify-content:center;background:var(--friend-blue);border:var(--friend-line);border-radius:22px;padding:18px;gap:10px;margin:20px 0}.detail-art .eco-friend{width:110px;height:130px}.detail-art img{width:120px;height:125px;object-fit:contain}.friend-detail h2{font-size:23px;font-weight:900;line-height:1.4}#reward-detail-cost{font-size:24px;font-weight:900;margin-top:8px}#reward-detail-stock,.detail-note{font-size:12px;color:#64705f;line-height:1.7;margin:8px 0}#reward-detail-confirm{width:100%;padding:12px;border:var(--friend-line);border-radius:16px;box-shadow:3px 4px 0 var(--friend-ink);background:var(--friend-green);font-weight:900;min-height:48px}#reward-detail-status{font-size:12px;color:#9b4639;margin-top:10px}
+.btn-detail{font-size:11px;text-decoration:underline;text-underline-offset:3px;min-height:34px;font-weight:800;color:#425c48}
+.identity-retry{position:fixed;inset:0;z-index:180;display:grid;place-items:center;padding:24px;background:#fffaf0ed}.identity-retry>div{max-width:400px;padding:28px;border:var(--friend-line);border-radius:24px;background:var(--friend-green);box-shadow:4px 5px 0 var(--friend-ink);text-align:center}.identity-retry h2{font-size:22px;font-weight:800}.identity-retry p{margin:12px 0;font-size:14px}.identity-retry button{min-height:44px;padding:8px 24px;border:var(--friend-line);border-radius:14px;background:var(--friend-yellow);font-weight:800}
+@media(max-width:380px){.friend-guide{grid-template-columns:minmax(0,1fr) 124px;padding:14px 12px;gap:5px}.guide-actors .eco-friend{width:33px;height:50px}.guide-actors .eco-friend[data-active="true"]{width:58px;height:82px}.friend-guide h2{font-size:16px}.friend-guide p{font-size:10px}.club-stamp{width:54px;height:54px;font-size:10px;top:10px;right:10px}.detail-art .eco-friend{width:90px}}
+@media(prefers-reduced-motion:reduce){.friend-world *,.friend-world *::before,.friend-world *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+.school-story svg{width:100%;height:auto;display:block}.friend-world .friend-paused *,.motion-paused .school-story *{animation-play-state:paused!important}
+#btn-header-profile-avatar{flex:1;min-width:0;justify-content:flex-end}#btn-header-profile-avatar>div:first-child{min-width:0;flex:1}#header-user-name{max-width:100%}
+@media(max-width:380px){#btn-header-logo h1{font-size:15px}#btn-header-profile-avatar>div:first-child{max-width:76px}#header-user-name{font-size:10px}.friend-detail{padding:18px}}
