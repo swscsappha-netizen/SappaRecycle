@@ -136,8 +136,15 @@
   }
 
   async function syncLineProfileToCloud(studentId, lineProfile) {
-    if (!studentId || !lineProfile || !window.APP_CONFIG) return;
-    // Profile data comes from LINE; browser writes to public storage are disabled.
+    if (!studentId || !lineProfile || !supabaseClient) return false;
+    const token = window.liff?.getAccessToken?.();
+    if (!token) return false;
+    try {
+      // The server retrieves the profile from LINE and checks its owner.
+      // Neither a browser-supplied picture nor a browser-supplied owner is trusted.
+      const result = await supabaseClient.rpc('sync_line_profile', {p_access_token:token});
+      return !result.error && result.data?.synced === true;
+    } catch { return false; } // Profile updates must never block access to points.
   }
 
   function showIdentityRetry() {
