@@ -2,7 +2,14 @@
 <html class="light" lang="th">
 <head>
   <meta charset="utf-8"/>
-  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+  <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+  <meta name="theme-color" content="#0b8757">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Sappha Recycle">
+  <link rel="manifest" href="manifest.webmanifest?v=2">
+  <link rel="apple-touch-icon" href="assets/sr-app-icon-180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/sr-app-icon-192.png">
   <title>Sappha Recycle - ระบบสะสมแต้มรักษ์โลก โรงเรียนสรรพวิทยาคม</title>
   
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
@@ -82,59 +89,37 @@
   </script>
 
   <link rel="stylesheet" href="index.css?v=4">
-<link rel="stylesheet" href="school-theme.css?v=6"><link rel="stylesheet" href="friends.css?v=1"><script src="friends-motion.js?v=2" defer></script></head>
-<body class="friend-world bg-surface text-on-surface font-body min-h-screen pb-28 md:pb-32 flex justify-center selection:bg-primary-container selection:text-white">
+<link rel="stylesheet" href="school-theme.css?v=6"><link rel="stylesheet" href="friends.css?v=1"><link rel="stylesheet" href="student-app.css?v=9"><link rel="stylesheet" href="student-design.css?v=23"><link rel="stylesheet" href="student-login-motion.css?v=6"></head>
+<body class="student-app bg-surface text-on-surface font-body min-h-screen pb-28 md:pb-32 flex justify-center selection:bg-primary-container selection:text-white">
   
   <!-- ===================================================================
        FULL-SCREEN SPLASH SCREEN LOADER (หน้าจอโหลดก่อนเข้าใช้งาน)
        =================================================================== -->
   <div id="app-splash-screen" class="fixed inset-0 z-[200] bg-surface flex flex-col items-center justify-center gap-6 transition-all duration-500 ease-out px-4">
-    <div class="relative flex items-center justify-center">
-      <div class="w-20 h-20 rounded-[28px] bg-primary-container/20 border-2 border-primary text-primary flex items-center justify-center shadow-xl animate-bounce">
-        <span class="material-symbols-rounded text-5xl" style="font-variation-settings: 'FILL' 1;">recycling</span>
-      </div>
-      <div class="absolute -top-1 -right-1 w-6 h-6 bg-[#06C755] rounded-full border-2 border-white flex items-center justify-center text-[10px] text-white font-black shadow-sm">L</div>
+    <div class="splash-halo" aria-hidden="true"></div>
+    <div class="splash-brand-reveal" role="img" aria-label="ตรา Sappha Recycle เคลื่อนไหว">
+      <img id="brand-reveal-poster" src="assets/brand-motion/sr-reveal.jpg" width="640" height="640" alt="">
+      <video id="brand-reveal-video" muted playsinline preload="none" tabindex="-1" aria-hidden="true" hidden></video>
     </div>
-
-    <div class="flex flex-col items-center text-center">
+    <div id="splash-mascot" class="app-mascot" data-mascot="welcome" aria-hidden="true"></div>
+    <div class="splash-brand flex flex-col items-center text-center">
       <h1 class="font-display text-[26px] font-black text-primary tracking-tight">Sappha Recycle</h1>
       <span class="text-[12px] font-extrabold text-on-surface-variant font-thai">โรงเรียนสรรพวิทยาคม</span>
     </div>
 
-    <div class="flex items-center gap-2.5 bg-surface-container-low px-4 py-2.5 rounded-full border border-secondary-container shadow-sm">
+    <div class="splash-status flex items-center gap-2.5 bg-surface-container-low px-4 py-2.5 rounded-full border border-secondary-container shadow-sm">
       <svg class="animate-spin h-4 w-4 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
       </svg>
-      <span class="text-[12px] font-bold text-primary font-thai" id="splash-loading-text">กำลังโหลดข้อมูลนักเรียน... 🌿</span>
+      <span class="text-[12px] font-bold text-primary font-thai" id="splash-loading-text">กำลังโหลดข้อมูลนักเรียน... </span>
     </div>
   </div>
 
   <div class="w-full max-w-lg mx-auto flex flex-col relative px-3 sm:px-4 mt-1 sm:mt-4">
 
     <!-- Top App Bar (Clean, Spacious, No Overlapping) -->
-    <header class="flex justify-between items-center w-full h-14 sm:h-16 bg-surface mb-2 sm:mb-3 px-1 gap-2">
-      <div class="flex items-center gap-2 cursor-pointer shrink-0" id="btn-header-logo">
-        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-secondary-container text-primary flex items-center justify-center border-2 border-primary-container/40 shrink-0 shadow-sm">
-          <span class="material-symbols-rounded text-xl sm:text-2xl" style="font-variation-settings: 'FILL' 1;">recycling</span>
-        </div>
-        <div class="flex flex-col">
-          <h1 class="font-display text-[17px] sm:text-[20px] font-extrabold text-primary tracking-tight leading-none">Sappha Recycle</h1>
-          <span class="text-[9px] sm:text-[10px] font-bold text-on-surface-variant font-thai leading-tight mt-0.5">สรรพวิทยาคม</span>
-        </div>
-      </div>
-      
-      <!-- Student Avatar & Status -->
-      <div class="flex items-center gap-2 shrink-0 cursor-pointer" id="btn-header-profile-avatar" title="ดูโปรไฟล์">
-        <div class="text-right flex flex-col items-end max-w-[130px] sm:max-w-[180px]">
-          <p class="font-bold text-[12px] sm:text-[13px] text-on-surface leading-tight truncate w-full" id="header-user-name">...</p>
-          <span class="text-[10px] sm:text-[11px] font-extrabold font-thai leading-none mt-0.5 truncate max-w-full" id="header-role-badge">...</span>
-        </div>
-        <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-[14px] bg-secondary-container overflow-hidden border-2 border-primary rotate-3 hover:rotate-0 transition-transform shadow-sm shrink-0">
-          <img alt="Student Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCMzO77nErEDCJPGf19iKg0nsB85lx6SEVo3BpTxNR1uJmvUqZay96Bu1HODgEpcS3ahIkHPM8afHtkoQpTXMnub1dwiqK-Bcw009b6Gtk8Fw7JWS-tGtYRAJLBkxj-t-mdKFDNGunJIJ3dqQnTs0K4mNDFNBUkD7PV-wFUsQYQ6uOu1ZBeH1NtfhQkc4GILrOz2FZDwNIsZGsw7DrJZ3ah0pTZQ0BvT2LhTuXUGLUBXxwUEREOtXxNzw"/>
-        </div>
-      </div>
-    </header>
+    <header class="app-header"><button id="btn-header-logo" class="app-brand" aria-label="Sappha Recycle กลับหน้าหลัก"><img src="assets/sr-mark.png" width="42" height="42" alt="โลโก้ SR"><span><strong>Sappha Recycle</strong><small>สรรพวิทยาคม</small></span></button><button id="btn-header-profile-avatar" class="app-user" aria-label="ดูข้อมูลของฉัน"><span><strong id="header-user-name">เพื่อนรักษ์โลก</strong><span id="header-role-badge"></span></span><img src="assets/app-icon-192.png" alt="รูปโปรไฟล์ LINE" width="42" height="42"></button></header>
 
     <!-- Main Dynamic Tab Viewports -->
     <main class="flex-grow flex flex-col gap-5 w-full">
@@ -144,70 +129,16 @@
            =================================================================== -->
       <section class="tab-pane active flex-col gap-4 sm:gap-5" id="tab-home">
         
-        <div class="school-story-card"><span class="club-stamp">ทำดีให้โลก<br>ทีละขวด</span><div class="school-story" data-school-scene role="img" aria-label="แก๊งนักเรียนรักษ์โลกในโรงเรียน"></div><span class="school-story-caption">โรงเรียนของเรา โลกของเรา</span></div><!-- Balance Header Card -->
-        <div class="balance-hero bg-surface-container-lowest rounded-[28px] sm:rounded-[32px] p-4 sm:p-6 reward-card flex flex-col items-center justify-between gap-4 sm:gap-5 relative overflow-hidden">
-          <div class="eco-orbit" aria-hidden="true"><span class="material-symbols-rounded">eco</span><span class="material-symbols-rounded">water_bottle</span><span class="material-symbols-rounded">auto_awesome</span></div>
-          <div class="eco-eyebrow"><span class="eco-dot" aria-hidden="true"></span> SMALL STEPS, GREENER WORLD</div>
-          <!-- Decorative Background Blurs -->
-          <div class="absolute -top-10 -right-10 w-28 h-28 sm:w-32 sm:h-32 bg-secondary-container rounded-full mix-blend-multiply opacity-50 blur-xl pointer-events-none"></div>
-          <div class="absolute -bottom-12 -left-12 w-32 h-32 sm:w-40 sm:h-40 bg-tertiary-container rounded-full mix-blend-multiply opacity-20 blur-xl pointer-events-none"></div>
-          
-          <div class="flex items-center justify-between w-full relative z-10">
-            <div class="flex items-center gap-3 sm:gap-4">
-              <div class="w-13 h-13 sm:w-16 sm:h-16 p-2.5 sm:p-3 rounded-[16px] sm:rounded-[20px] bg-primary-container text-on-primary flex items-center justify-center shrink-0 shadow-md rotate-[-6deg] border-2 border-surface-container-lowest">
-                <span class="material-symbols-rounded text-3xl sm:text-4xl" style="font-variation-settings: 'FILL' 1;">stars</span>
-              </div>
-              <div>
-                <h2 class="font-display text-[13px] sm:text-[15px] text-on-surface-variant font-extrabold tracking-tight">ยอดแต้มสะสมของคุณ</h2>
-                <p class="font-display text-[30px] sm:text-[38px] text-primary font-black mt-0 leading-none tracking-tight">
-                  <span id="dash-points-balance">0</span>
-                  <span class="font-body text-[15px] sm:text-[18px] text-on-surface-variant font-bold ml-1">Pts</span>
-                </p>
-              </div>
-            </div>
-
-            <button class="bg-surface-container-low px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl border border-secondary-container text-right hover:bg-secondary-container transition-colors cursor-pointer" id="btn-quick-to-profile" title="คลิกเพื่อดูโปรไฟล์">
-              <span class="text-[10px] sm:text-[11px] text-on-surface-variant font-bold block">รหัสประจำตัว</span>
-              <strong class="text-[12px] sm:text-[14px] text-primary font-extrabold" id="dash-student-id">...</strong>
-            </button>
-          </div>
-
-          <!-- Goal & Rank Progress -->
-          <div class="bg-surface-container-low px-4 sm:px-5 py-3 sm:py-3.5 rounded-[18px] sm:rounded-[22px] border-2 border-secondary-container w-full relative z-10 shadow-sm flex flex-col gap-1.5 sm:gap-2">
-            <div class="flex justify-between items-center">
-              <span class="font-display text-[11px] sm:text-[13px] text-primary font-extrabold tracking-wide uppercase flex items-center gap-1" id="dash-rank-badge">
-                <span class="material-symbols-rounded text-sm" style="font-variation-settings: 'FILL' 1;">eco</span>
-                🌱 กำลังคำนวณเลเวล...
-              </span>
-              <span class="text-[11px] sm:text-[12px] font-bold text-on-surface-variant" id="dash-rank-progress-text">...</span>
-            </div>
-            
-            <div class="w-full bg-surface-container-lowest rounded-full h-3 sm:h-3.5 border-2 border-secondary-container overflow-hidden">
-              <div class="bg-primary-container h-full rounded-full w-0 relative transition-all duration-500" id="dash-rank-bar">
-                <div class="absolute top-0 right-0 bottom-0 w-4 bg-white/30 skew-x-[-20deg]"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Stats Pill Row (Clickable to Filter) -->
-          <div class="grid grid-cols-3 gap-1.5 sm:gap-2.5 w-full relative z-10">
-            <button class="bg-surface-container-low p-2 sm:p-2.5 rounded-[14px] sm:rounded-[18px] border border-secondary-container text-center hover:bg-secondary-container transition-colors cursor-pointer" id="btn-stat-pet">
-              <span class="text-[10px] sm:text-[11px] text-on-surface-variant font-bold block truncate">PET · 15 รายการแรก</span>
-              <strong class="text-[12px] sm:text-[14px] text-primary font-extrabold" id="dash-pet-count">0 ชิ้น</strong>
-            </button>
-            <button class="bg-surface-container-low p-2 sm:p-2.5 rounded-[14px] sm:rounded-[18px] border border-secondary-container text-center hover:bg-secondary-container transition-colors cursor-pointer" id="btn-stat-can">
-              <span class="text-[10px] sm:text-[11px] text-on-surface-variant font-bold block truncate">CAN · 15 รายการแรก</span>
-              <strong class="text-[12px] sm:text-[14px] text-[#F57F17] font-extrabold" id="dash-can-count">0 ชิ้น</strong>
-            </button>
-            <button class="bg-surface-container-low p-2 sm:p-2.5 rounded-[14px] sm:rounded-[18px] border border-secondary-container text-center hover:bg-secondary-container transition-colors cursor-pointer" id="btn-stat-room">
-              <span class="text-[10px] sm:text-[11px] text-on-surface-variant font-bold block truncate">ชั้น/ห้อง (เลขที่)</span>
-              <strong class="text-[11px] sm:text-[13px] text-on-surface font-extrabold truncate block" id="dash-student-room">...</strong>
-            </button>
-          </div>
-
-        </div>
-
-        <!-- Category Filters -->
+        <div class="app-greeting"><div class="greeting-copy"><small>วันดี ๆ เริ่มจากสิ่งเล็ก ๆ</small><h1>สวัสดี <span id="app-greeting-name">เพื่อนรักษ์โลก</span></h1><p>วันนี้มารักษ์โลกกัน</p></div><svg class="greeting-recycle-art" viewBox="0 0 160 160" fill="none" aria-hidden="true" focusable="false">
+<ellipse cx="82" cy="136" rx="52" ry="7" fill="#b4c99c" opacity=".28"/>
+<path d="M43 40C64 16 107 24 126 49" stroke="#96b67f" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 6"/><path d="m118 47 10 4-1-11" stroke="#769963" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<g transform="rotate(-12 62 89)"><path d="M53 37h18v21l10 16v48c0 6-4 10-10 10H53c-6 0-10-4-10-10V74l10-16V37Z" fill="#a9d7bd" stroke="#417960" stroke-width="2.5" stroke-linejoin="round"/><rect x="51" y="32" width="22" height="10" rx="3" fill="#4e8866"/><rect x="43" y="85" width="38" height="29" rx="3" fill="#f6faf1"/><path d="m57 94 5-7 5 7m-12 7 4 6h8m3-12 3 7-5 4" stroke="#4b825e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M51 71v8" stroke="#e9fff0" stroke-width="3" stroke-linecap="round"/></g>
+<g transform="rotate(10 111 105)"><rect x="94" y="76" width="31" height="54" rx="8" fill="#f5df9b" stroke="#a28d51" stroke-width="2"/><path d="M96 84h27m-26 38h25" stroke="#bea76a" stroke-width="2"/><ellipse cx="109.5" cy="77" rx="13" ry="3.5" fill="#f9edc8" stroke="#a28d51" stroke-width="1.5"/><path d="M104 76h10" stroke="#a28d51" stroke-width="2" stroke-linecap="round"/></g>
+<path d="M119 63c-4-14 4-25 20-28-1 16-8 26-20 28Z" fill="#bfd19c" stroke="#7c9b61" stroke-width="1.5"/><path d="m118 67 12-20" stroke="#7c9b61" stroke-width="1.5" stroke-linecap="round"/><circle cx="30" cy="106" r="3" fill="#e6c969"/><circle cx="94" cy="26" r="2.5" fill="#9eba8d"/>
+</svg></div>
+<section class="balance-hero"><small class="balance-kicker"><span class="material-symbols-rounded" aria-hidden="true">recycling</span>แต้มจากการรีไซเคิล</small><svg class="balance-eco-pattern" viewBox="0 0 180 180" fill="none" aria-hidden="true"><circle cx="100" cy="78" r="63" stroke="currentColor" stroke-width="1"/><path d="M59 111c-9-34 7-58 45-64 2 37-12 62-45 64Z" stroke="currentColor" stroke-width="3"/><path d="m43 134 46-68m35 46c-2-22 12-36 36-35-5 24-16 36-36 35Zm-5 12 26-34" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg><div class="old-balance-row"><div><p>ยอดแต้มสะสมของคุณ</p><strong id="dash-points-balance">—</strong> <span>แต้ม</span></div><button id="btn-quick-to-profile">รหัสประจำตัว<b id="dash-student-id">—</b></button></div><div class="old-rank"><div><strong id="dash-rank-badge">กำลังโหลดระดับ…</strong><span id="dash-rank-progress-text"></span></div><div class="old-progress"><div id="dash-rank-bar"></div></div></div><div class="garden-journey" id="journey-progress" role="progressbar" aria-label="ความก้าวหน้าจากจำนวนชิ้นที่รีไซเคิล" aria-valuemin="0" aria-valuemax="100"><div class="garden-level-copy"><span id="journey-level">รอข้อมูล</span><span><b id="journey-count">—</b><span id="journey-goal"> ชิ้นสะสม</span></span></div><div class="garden-level-path" aria-hidden="true"><span data-level="1">1</span><span data-level="2">2</span><span data-level="3">3</span><span data-level="4">4</span></div></div></section><div class="journey-stats"><button id="btn-stat-pet"><span>PET · รายการที่โหลดแล้ว</span><strong id="dash-pet-count">—</strong></button><button id="btn-stat-can"><span>CAN · รายการที่โหลดแล้ว</span><strong id="dash-can-count">—</strong></button><button id="btn-stat-room"><span>ชั้น/ห้อง (เลขที่)</span><strong id="dash-student-room">—</strong></button></div>
+<div class="app-shortcuts"><button data-open-guide><span class="material-symbols-rounded ui-icon" aria-hidden="true">recycling</span>วิธีเก็บแต้ม</button><button id="btn-quick-to-rewards"><span class="material-symbols-rounded ui-icon" aria-hidden="true">redeem</span>แลกรางวัล</button><button id="btn-quick-to-coupons"><span class="material-symbols-rounded ui-icon" aria-hidden="true">confirmation_number</span>คูปองของฉัน</button></div><section class="old-guide-card"><div id="journey-mascot" data-mascot="welcome" class="app-mascot" aria-hidden="true"></div><div><h2>แยกให้พร้อม ก่อนคืนให้โลก</h2><p>เริ่มจากขวด PET และกระป๋องที่ตู้รองรับ<br>เตรียมให้พร้อม แล้วค่อยนำไปเก็บแต้ม</p><ul class="recycle-prep-tips" aria-label="เตรียมรีไซเคิล"><li><span class="material-symbols-rounded" aria-hidden="true">water_drop</span><span>เทน้ำออก</span></li><li><span class="material-symbols-rounded" aria-hidden="true">category</span><span>แยกประเภท</span></li><li><span class="material-symbols-rounded" aria-hidden="true">fact_check</span><span>ดูชนิดที่ตู้รับ</span></li></ul><button data-open-guide>ดูวิธีเก็บแต้ม →</button></div></section>
+<!-- Category Filters -->
         <div class="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar">
           <button class="cat-pill active px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-[16px] sm:rounded-[18px] bg-primary text-on-primary font-bold text-[12px] sm:text-[13px] flex items-center gap-1 transition-all shadow-sm cursor-pointer whitespace-nowrap" data-cat="all">
             <span class="material-symbols-rounded text-sm" style="font-variation-settings: 'FILL' 1;">apps</span>
@@ -230,7 +161,6 @@
               <span class="material-symbols-rounded text-primary text-lg sm:text-xl" style="font-variation-settings: 'FILL' 1;">history</span>
               ประวัติการบันทึกแต้ม
             </h3>
-            <button class="text-[11px] sm:text-[12px] font-bold text-primary hover:underline cursor-pointer" id="btn-refresh-history">รีเฟรช 🔄</button>
           </div>
 
           <div class="flex flex-col gap-2" id="recent-history-list">
@@ -244,27 +174,31 @@
            TAB 2: Reward Store (ร้านค้าแลกของรางวัล)
            =================================================================== -->
       <section class="tab-pane flex-col gap-3.5 sm:gap-4" id="tab-rewards">
-        <div class="px-1">
-          <h2 class="font-display text-[20px] sm:text-[22px] font-extrabold text-primary tracking-tight">ร้านค้าแลกรางวัล 🎁</h2>
-          <p class="text-[12px] sm:text-[13px] text-on-surface-variant font-bold">นำแต้มจากการคัดแยกขวดมาแลกรับของที่ห้องสภานักเรียน</p>
+        <div class="rewards-heading">
+          <span class="rewards-eyebrow eco-section-label"><span class="material-symbols-rounded" aria-hidden="true">redeem</span>ผลลัพธ์ดี ๆ จากการแยกรีไซเคิล</span>
+          <h2>แต้มเล็ก ๆ รางวัลดี ๆ</h2>
+          <p>เลือกสิ่งที่ชอบ จากทุกชิ้นที่คุณคืนให้โลก<br>รับของรางวัลได้ที่ห้องสภานักเรียน</p>
+          <div class="rewards-cycle" aria-label="รีไซเคิล สะสมแต้ม เลือกรางวัล"><span><i class="material-symbols-rounded" aria-hidden="true">water_bottle</i>รีไซเคิล</span><i class="material-symbols-rounded cycle-arrow" aria-hidden="true">arrow_forward</i><span><i class="material-symbols-rounded" aria-hidden="true">recycling</i>สะสมแต้ม</span><i class="material-symbols-rounded cycle-arrow" aria-hidden="true">arrow_forward</i><span><i class="material-symbols-rounded" aria-hidden="true">redeem</i>เลือกรางวัล</span></div>
         </div>
 
+        <div class="store-wallet" id="store-wallet"><span class="eco-wallet-label"><span class="material-symbols-rounded" aria-hidden="true">recycling</span><span>แต้มรีไซเคิลพร้อมใช้</span></span><strong><span id="store-points">—</span> <small>แต้ม</small></strong></div>
         <!-- Store Category Filters -->
         <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 hide-scrollbar" id="store-category-filters">
           <button class="store-filter-pill active px-3 sm:px-3.5 py-1.5 rounded-[14px] sm:rounded-[16px] bg-primary text-on-primary font-extrabold text-[11px] sm:text-[12px] cursor-pointer whitespace-nowrap" data-filter="all">
-            ✨ ทั้งหมด
+            <span class="material-symbols-rounded ui-icon" aria-hidden="true">apps</span> ทั้งหมด
           </button>
           <button class="store-filter-pill px-3 sm:px-3.5 py-1.5 rounded-[14px] sm:rounded-[16px] bg-surface-container-lowest text-on-surface-variant font-extrabold text-[11px] sm:text-[12px] border border-secondary-container cursor-pointer hover:bg-secondary-container whitespace-nowrap" data-filter="stationery">
-            ✏️ เครื่องเขียน
+            <span class="material-symbols-rounded ui-icon" aria-hidden="true">edit</span> เครื่องเขียน
           </button>
           <button class="store-filter-pill px-3 sm:px-3.5 py-1.5 rounded-[14px] sm:rounded-[16px] bg-surface-container-lowest text-on-surface-variant font-extrabold text-[11px] sm:text-[12px] border border-secondary-container cursor-pointer hover:bg-secondary-container whitespace-nowrap" data-filter="character">
-            ⭐ คะแนนคุณลักษณะ
+            <span class="material-symbols-rounded ui-icon" aria-hidden="true">verified</span> คะแนนคุณลักษณะ
           </button>
           <button class="store-filter-pill px-3 sm:px-3.5 py-1.5 rounded-[14px] sm:rounded-[16px] bg-surface-container-lowest text-on-surface-variant font-extrabold text-[11px] sm:text-[12px] border border-secondary-container cursor-pointer hover:bg-secondary-container whitespace-nowrap" data-filter="toy">
-            🧸 ของเล่น
+            <span class="material-symbols-rounded ui-icon" aria-hidden="true">toys</span> ของเล่น
           </button>
         </div>
 
+        <div class="reward-budget-controls"><button type="button" id="filter-affordable" aria-pressed="false" disabled><span class="material-symbols-rounded" aria-hidden="true">savings</span><span>แต้มพอแลก</span><span class="budget-filter-check material-symbols-rounded" aria-hidden="true">check</span></button><span id="reward-budget-note">อิงจากแต้มล่าสุดที่โหลดได้</span></div>
         <!-- 2-Column Grid Layout (Mobile Responsive) -->
         <div class="grid grid-cols-2 gap-2.5 sm:gap-4 w-full" id="rewards-grid">
           <!-- Dynamic Rewards Injected Here -->
@@ -275,9 +209,10 @@
            TAB 3: My Coupons (คลังคูปองตั๋วรางวัล)
            =================================================================== -->
       <section class="tab-pane flex-col gap-3.5 sm:gap-4" id="tab-coupons">
-        <div class="px-1">
-          <h2 class="font-display text-[20px] sm:text-[22px] font-extrabold text-primary tracking-tight">คูปองของฉัน 🎟️</h2>
-          <p class="text-[12px] sm:text-[13px] text-on-surface-variant font-bold">แสดง QR Code ให้กรรมการสภานักเรียนเพื่อรับของรางวัล</p>
+        <div class="page-heading">
+          <small class="eco-section-label"><span class="material-symbols-rounded" aria-hidden="true">confirmation_number</span>จากการรีไซเคิล สู่ของที่ชอบ</small>
+          <h2>คูปองของฉัน</h2>
+          <p>เลือกคูปองเพื่อเปิด QR รับรางวัลที่ห้องสภานักเรียน<br>ตรวจสถานะพร้อมใช้ก่อนแสดงคูปอง</p>
         </div>
 
         <!-- Sub Tabs -->
@@ -293,18 +228,21 @@
         <div class="flex flex-col gap-2.5 sm:gap-3" id="coupons-list">
           <!-- Dynamic Coupons Injected Here -->
         </div>
+        <aside class="coupon-use-guide" aria-label="วิธีรับของรางวัล"><h3>รับของรางวัลอย่างไร</h3><ol><li><span class="material-symbols-rounded" aria-hidden="true">confirmation_number</span><span>เลือกคูปอง</span></li><li><span class="material-symbols-rounded" aria-hidden="true">qr_code_2</span><span>แสดง QR</span></li><li><span class="material-symbols-rounded" aria-hidden="true">redeem</span><span>รับที่ห้องสภา</span></li></ol><p>คูปองที่รับของแล้วจะย้ายไปหมวด “ใช้แล้ว”</p></aside>
       </section>
 
       <!-- ===================================================================
            TAB 4: Student Profile (ข้อมูลส่วนตัว & ADR-0001 Phone Editor)
            =================================================================== -->
       <section class="tab-pane flex-col gap-3.5 sm:gap-4" id="tab-profile">
-        <div class="px-1">
-          <h2 class="font-display text-[20px] sm:text-[22px] font-extrabold text-primary tracking-tight">โปรไฟล์นักเรียน 🎒</h2>
-          <p class="text-[12px] sm:text-[13px] text-on-surface-variant font-bold">ตรวจสอบข้อมูลและอัปเดตเบอร์โทรศัพท์สำหรับรับรางวัล</p>
+        <div class="page-heading">
+          <small class="eco-section-label"><span class="material-symbols-rounded" aria-hidden="true">eco</span>พื้นที่ของเพื่อนรักษ์โลก</small>
+          <h2>พื้นที่ของฉัน</h2>
+          <p>ดูแลข้อมูลให้พร้อมสำหรับเก็บแต้ม<br>และรับรางวัลจากการรีไซเคิล</p>
         </div>
 
         <div class="bg-surface-container-lowest rounded-[28px] sm:rounded-[32px] p-5 sm:p-6 reward-card flex flex-col gap-3.5 sm:gap-4">
+          <h3 class="profile-field-heading"><span class="material-symbols-rounded" aria-hidden="true">badge</span>ข้อมูลนักเรียน</h3>
           <div class="flex items-center gap-3 sm:gap-4 pb-3.5 sm:pb-4 border-b border-surface-container">
             <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-[18px] sm:rounded-[22px] bg-secondary-container overflow-hidden border-2 border-primary shadow-sm rotate-2 shrink-0">
               <img id="prof-avatar-img" alt="Student Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCMzO77nErEDCJPGf19iKg0nsB85lx6SEVo3BpTxNR1uJmvUqZay96Bu1HODgEpcS3ahIkHPM8afHtkoQpTXMnub1dwiqK-Bcw009b6Gtk8Fw7JWS-tGtYRAJLBkxj-t-mdKFDNGunJIJ3dqQnTs0K4mNDFNBUkD7PV-wFUsQYQ6uOu1ZBeH1NtfhQkc4GILrOz2FZDwNIsZGsw7DrJZ3ah0pTZQ0BvT2LhTuXUGLUBXxwUEREOtXxNzw"/>
@@ -322,7 +260,7 @@
 
           <div class="flex flex-col gap-1">
             <label class="text-[11px] sm:text-[12px] font-extrabold text-on-surface-variant flex justify-between">
-              <span>เบอร์โทรศัพท์มือถือ (10 หลัก)</span>
+              <span><span class="material-symbols-rounded ui-icon" aria-hidden="true">contact_phone</span> เบอร์โทรศัพท์มือถือ (10 หลัก)</span>
               <span class="text-error font-bold">*จำเป็นในการแลกรางวัล</span>
             </label>
             <div class="flex gap-2">
@@ -331,9 +269,10 @@
                 บันทึกเบอร์
               </button>
             </div>
-            <small class="text-[10px] sm:text-[11px] text-primary font-bold">✨ แก้ไขเบอร์โทรศัพท์ แล้วกดบันทึกเพื่ออัปเดตข้อมูล</small>
+            <small class="text-[10px] sm:text-[11px] text-primary font-bold"> แก้ไขเบอร์โทรศัพท์ แล้วกดบันทึกเพื่ออัปเดตข้อมูล</small>
           </div>
 
+          <div class="phone-feedback" id="phone-save-feedback" role="status" aria-live="polite" hidden><div><span class="material-symbols-rounded" id="phone-feedback-icon" aria-hidden="true">check_circle</span><p id="phone-feedback-message"></p></div><button type="button" data-app-tab="tab-rewards" id="phone-next-rewards" hidden>เลือกรางวัล <span class="material-symbols-rounded" aria-hidden="true">arrow_forward</span></button></div>
           <!-- Council Scanner Shortcut Button (Inside Profile) -->
           <div class="pt-1" id="box-council-profile-shortcut" style="display: none;">
             <button class="w-full bg-[#48e588] text-[#053b19] font-display font-extrabold py-3 sm:py-3.5 rounded-[18px] sm:rounded-[20px] btn-squishy hover:bg-[#34d374] border-b-4 border-[#16a34a] flex items-center justify-center gap-2 shadow-md cursor-pointer text-[14px]" id="btn-profile-open-scanner">
@@ -352,10 +291,10 @@
 
           <div class="bg-surface-container-low p-3 sm:p-3.5 rounded-[16px] sm:rounded-[20px] border border-secondary-container flex items-center gap-2">
             <span class="material-symbols-rounded text-primary text-lg sm:text-xl" style="font-variation-settings: 'FILL' 1;">verified</span>
-            <span class="text-[11px] sm:text-[12px] font-bold text-on-surface-variant">กดรีเฟรชที่หน้าหลักเพื่อดูแต้มล่าสุด</span>
+            <span class="text-[11px] sm:text-[12px] font-bold text-on-surface-variant">กดอัปเดตในส่วนข้อมูลและความช่วยเหลือที่หน้าหลัก เพื่อดูแต้มล่าสุด</span>
           </div>
         </div>
-      </section>
+      <section class="app-settings" aria-labelledby="app-account-title"><h3 id="app-account-title"><span class="material-symbols-rounded" aria-hidden="true">link</span>บัญชีที่เชื่อมต่อ</h3><p id="app-account-line">LINE: รอยืนยันบัญชี</p><p id="app-account-school">บัญชีโรงเรียน: รอยืนยันบัญชี</p><button type="button" data-open-guide>วิธีเก็บแต้ม <span aria-hidden="true"></span></button><button type="button" id="app-my-reports">ติดตามเรื่องที่แจ้ง <span aria-hidden="true">→</span></button></section><section class="app-settings" aria-labelledby="app-install-title"><h3 id="app-install-title"><span class="material-symbols-rounded" aria-hidden="true">install_mobile</span>เปิดได้ง่ายเหมือนแอพ</h3><button type="button" data-install-app>เพิ่มลงหน้าจอมือถือ <span aria-hidden="true">＋</span></button><p id="app-install-status"></p></section></section>
 
       <!-- ===================================================================
            VIEW 5: Council Admin Scanner (สแกนเนอร์สภานักเรียน)
@@ -375,7 +314,7 @@
         <div class="bg-black rounded-[28px] sm:rounded-[32px] overflow-hidden relative min-h-[260px] sm:min-h-[280px] border-4 border-primary shadow-lg flex flex-col justify-between">
           <div id="qr-reader-viewport" class="w-full h-full"></div>
           <div class="bg-black/75 p-2.5 sm:p-3 text-center text-white text-[11px] sm:text-[12px] font-bold z-10">
-            📸 ส่องกล้องไปที่ QR Code คูปองของนักเรียนเพื่อตรวจสอบ
+             ส่องกล้องไปที่ QR Code คูปองของนักเรียนเพื่อตรวจสอบ
           </div>
         </div>
 
@@ -407,7 +346,7 @@
         <li>
           <button class="nav-tab-btn flex flex-col items-center justify-center text-on-surface-variant px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-[16px] sm:rounded-[20px] transition-all cursor-pointer" data-tab="tab-rewards">
             <span class="material-symbols-rounded text-[24px] sm:text-[26px]">storefront</span>
-            <span class="font-display text-[10px] sm:text-[11px] font-extrabold mt-0.5 tracking-wide">แลกรางวัล</span>
+            <span class="font-display text-[10px] sm:text-[11px] font-extrabold mt-0.5 tracking-wide">รางวัล</span>
           </button>
         </li>
 
@@ -429,7 +368,7 @@
         <li>
           <button class="nav-tab-btn flex flex-col items-center justify-center text-on-surface-variant px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-[16px] sm:rounded-[20px] transition-all cursor-pointer" data-tab="tab-profile">
             <span class="material-symbols-rounded text-[24px] sm:text-[26px]">face</span>
-            <span class="font-display text-[10px] sm:text-[11px] font-extrabold mt-0.5 tracking-wide">โปรไฟล์</span>
+            <span class="font-display text-[10px] sm:text-[11px] font-extrabold mt-0.5 tracking-wide">ฉัน</span>
           </button>
         </li>
       </ul>
@@ -445,7 +384,7 @@
         <div class="mt-6 sm:mt-8 text-center">
           <h3 class="font-display text-[18px] sm:text-[22px] font-extrabold text-on-surface mb-1.5 tracking-tight">กรุณาระบุเบอร์โทรศัพท์</h3>
           <p class="text-[12px] sm:text-[14px] font-semibold text-on-surface-variant mb-4 sm:mb-5 leading-relaxed">
-            ตามมาตรการความปลอดภัย (ADR-0001) คุณต้องกรอกเบอร์โทรศัพท์ 10 หลักก่อนกดแลกคูปองของรางวัลนะ 📱✨
+            กรอกเบอร์โทรศัพท์ 10 หลักก่อนกดแลกคูปองของรางวัลนะ 
           </p>
           <div class="mb-4 sm:mb-5">
             <input type="tel" id="input-gatekeeper-phone" placeholder="08xxxxxxxx" maxlength="10" class="w-full text-center bg-surface-container-low border-2 border-primary-container rounded-[16px] sm:rounded-[18px] py-2.5 sm:py-3 text-[16px] sm:text-[18px] font-display font-extrabold tracking-widest text-primary focus:outline-none focus:ring-2 focus:ring-primary">
@@ -463,32 +402,13 @@
     </div>
 
     <!-- Modal: Coupon QR Presentation -->
-    <div class="fixed inset-0 z-[100] hidden items-center justify-center p-3 sm:p-4" id="modal-qr-presentation">
-      <div class="absolute inset-0 bg-black/40 backdrop-blur-sm cursor-pointer" id="btn-close-qr-backdrop"></div>
-      <div class="relative bg-surface-container-lowest rounded-[28px] sm:rounded-[32px] shadow-2xl p-5 sm:p-6 max-w-sm w-full border-4 border-primary-container z-10 animate-bounce-in text-center flex flex-col items-center gap-2.5 sm:gap-3 max-h-[90vh] overflow-y-auto">
-        <button class="absolute top-3 right-3 sm:top-4 sm:right-4 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-surface-container text-on-surface-variant flex items-center justify-center hover:bg-surface-variant cursor-pointer" id="btn-close-qr-modal">
-          <span class="material-symbols-rounded text-lg sm:text-xl">close</span>
-        </button>
-        <span class="bg-primary-container/20 text-primary font-extrabold text-[11px] sm:text-[12px] px-3 py-0.5 sm:py-1 rounded-full border border-primary-container">
-          🎟️ คูปองพร้อมใช้งาน (ไม่มีวันหมดอายุ)
-        </span>
-        <h3 class="font-display text-[17px] sm:text-[20px] font-extrabold text-on-surface px-6" id="modal-qr-title">ปากกาเจลรักษ์โลก</h3>
-        
-        <div class="p-3 sm:p-3.5 bg-surface-container-low rounded-[20px] sm:rounded-[24px] border-2 border-secondary-container my-1 flex items-center justify-center min-w-[180px] min-h-[180px] sm:min-w-[200px] sm:min-h-[200px] bg-white shadow-inner" id="qr-container">
-          <!-- Canvas / QR Image Injected Here -->
-        </div>
-
-        <div class="text-[12px] sm:text-[13px] text-on-surface-variant font-bold">
-          รหัสคูปอง: <strong class="font-display text-[14px] sm:text-[15px] text-primary" id="modal-qr-code-text">CPN-XXXXXXXX</strong>
-        </div>
-
-        <p class="text-[11px] sm:text-[12px] text-on-surface-variant leading-relaxed">
-          แสดงหน้านี้ให้กรรมการสภาที่ห้องสภานักเรียนเพื่อรับของรางวัลได้เลย! 🎉
-        </p>
-      </div>
-    </div>
-
-    <!-- Modal: Council Handover Verification -->
+<dialog class="app-sheet qr-sheet" id="modal-qr-presentation" aria-labelledby="modal-qr-title" aria-describedby="qr-instructions">
+  <div class="sheet-grip" aria-hidden="true"></div><div class="sheet-topline"><span class="app-eyebrow">คูปองพร้อมใช้</span><button type="button" id="btn-close-qr-modal" class="sheet-close" aria-label="ปิด QR คูปอง">✕</button></div>
+  <div class="redeem-success-feedback" id="redeem-success-feedback" role="status" aria-live="polite" hidden><span class="material-symbols-rounded" aria-hidden="true">check_circle</span><div><strong>แลกรางวัลสำเร็จ</strong><p>แสดง QR ด้านล่างเพื่อรับของ</p></div><button type="button" id="qr-next-coupons" class="redeem-next" aria-label="ดูคูปองของฉัน" hidden>ดูคูปอง</button></div>
+  <div class="coupon-mascot-scene" aria-hidden="true"><div id="coupon-mascot" class="app-mascot" data-mascot="welcome"></div><i class="coupon-spark spark-a">✦</i><i class="coupon-spark spark-b">✧</i><i class="coupon-spark spark-c">✦</i><i class="coupon-spark spark-d">✧</i></div>
+  <h2 id="modal-qr-title">ของรางวัล</h2><p id="qr-instructions">แสดง QR นี้ให้สภานักเรียนที่ห้องสภา เพื่อรับของรางวัล</p><div id="qr-container" class="app-qr-code"></div><p class="app-qr-reference">รหัสคูปอง <strong id="modal-qr-code-text"></strong></p><p class="app-qr-note">ใช้รับของได้ครั้งเดียว กรุณาตรวจรายการกับเจ้าหน้าที่ก่อนรับของ</p>
+</dialog>
+<!-- Modal: Council Handover Verification -->
     <div class="fixed inset-0 z-[100] hidden items-center justify-center p-3 sm:p-4" id="modal-council-verify">
       <div class="absolute inset-0 bg-black/40 backdrop-blur-sm cursor-pointer" id="btn-verify-cancel-backdrop"></div>
       <div class="relative bg-surface-container-lowest rounded-[28px] sm:rounded-[32px] shadow-2xl p-5 sm:p-6 max-w-sm w-full border-4 border-primary-container z-10 animate-bounce-in text-center flex flex-col items-center gap-2.5 sm:gap-3 max-h-[90vh] overflow-y-auto">
@@ -530,12 +450,12 @@
           </div>
           <div>
             <span class="text-[10px] font-black uppercase tracking-wider text-[#06C755] bg-[#E8F8EE] px-2 py-0.5 rounded-full inline-block">LINE เข้าสู่ระบบครั้งแรก</span>
-            <h3 class="font-display text-[18px] font-black text-on-surface leading-tight mt-1" id="line-bind-display-name">สวัสดีครับ! 🌿</h3>
+            <h3 class="font-display text-[18px] font-black text-on-surface leading-tight mt-1" id="line-bind-display-name">สวัสดีครับ! </h3>
             <p class="text-[11px] text-on-surface-variant font-bold">ผูกบัญชีเพื่อสะสมแต้มรีไซเคิล</p>
           </div>
         </div>
 
-        <div class="school-welcome"><div class="login-friends" aria-hidden="true"><span data-friend="cat" data-pose="wave"></span><span data-friend="rabbit" data-pose="guide"></span><span data-friend="bird" data-pose="wave"></span></div><span class="welcome-kicker">YOUR GREEN JOURNEY</span><h4>เริ่มสะสมแต้ม<br>เพื่อโลกที่สดใสกว่า</h4><p>ยืนยัน Google โรงเรียนครั้งแรกเท่านั้น<br><strong>เลขประจำตัว 5 หลัก@sappha.ac.th</strong></p><div class="welcome-steps"><span>✓ LINE</span><span>02 ยืนยันอีเมล</span><span>03 ดูแต้ม</span></div></div>
+        <div class="school-welcome"><div class="login-friends" aria-hidden="true"><span data-friend="cat" data-pose="wave"></span><span data-friend="rabbit" data-pose="guide"></span><span data-friend="bird" data-pose="wave"></span></div><span class="welcome-kicker">SAPPHA RECYCLE</span><h4>ทุกขวดของคุณ<br>มีความหมาย</h4><p>ยืนยัน Google โรงเรียนครั้งแรกเท่านั้น<br><strong>เลขประจำตัว 5 หลัก@sappha.ac.th</strong></p><div class="welcome-steps"><span>✓ LINE</span><span>02 ยืนยันอีเมล</span><span>03 ดูแต้ม</span></div><div class="login-recycle-story" aria-label="แยกรีไซเคิล สะสมแต้ม แลกรางวัล"><span class="material-symbols-rounded" aria-hidden="true">water_bottle</span><i aria-hidden="true"></i><span class="material-symbols-rounded" aria-hidden="true">recycling</span><i aria-hidden="true"></i><span class="material-symbols-rounded" aria-hidden="true">redeem</span><small>แยกรีไซเคิล · สะสมแต้ม · แลกรางวัล</small></div></div>
         <div class="pt-2">
           <button class="w-full bg-primary text-on-primary font-display font-extrabold py-3.5 rounded-[20px] btn-squishy hover:bg-primary-container border-b-4 border-on-primary-container cursor-pointer text-[15px] shadow-lg flex items-center justify-center gap-2" id="btn-confirm-line-bind">
             เข้าสู่ระบบ Google ของโรงเรียน
@@ -558,7 +478,7 @@
 
         <div>
           <span class="text-[11px] font-black uppercase tracking-wider text-primary bg-primary-container/20 px-3 py-1 rounded-full inline-block">ผูกบัญชีสำเร็จเรียบร้อย</span>
-          <h3 class="font-display text-[20px] font-black text-on-surface leading-tight mt-2">ยินดีต้อนรับสู่ Sappha Recycle! 🌿</h3>
+          <h3 class="font-display text-[20px] font-black text-on-surface leading-tight mt-2">ยินดีต้อนรับสู่ Sappha Recycle! </h3>
           <p class="text-[12px] text-on-surface-variant font-bold mt-1" id="success-bind-desc">ผูกบัญชีกับข้อมูลนักเรียนเรียบร้อยแล้ว</p>
         </div>
 
@@ -569,7 +489,7 @@
         </div>
 
         <button class="w-full bg-primary text-on-primary font-display font-extrabold py-3.5 rounded-[20px] btn-squishy hover:bg-primary-container border-b-4 border-on-primary-container cursor-pointer text-[15px] shadow-lg flex items-center justify-center gap-2" id="btn-close-bind-success">
-          เริ่มต้นสะสมแต้มเลย 🚀
+          เริ่มต้นสะสมแต้มเลย 
         </button>
 
       </div>
@@ -582,9 +502,21 @@
 
   </div>
 
+  <div class="app-network" id="app-network" role="status" hidden>ออฟไลน์ ข้อมูลล่าสุดอาจยังอัปเดตไม่ได้ กรุณาเชื่อมต่ออินเทอร์เน็ตอีกครั้ง</div>
+  <dialog id="app-onboarding" class="app-dialog" aria-labelledby="guide-title" aria-describedby="guide-copy">
+    <div class="dialog-top"><span class="app-eyebrow">เริ่มเก็บแต้มกับเพื่อนรักษ์โลก</span><button type="button" id="guide-skip">ข้าม</button></div>
+    <div id="guide-page"><div class="app-guide-art"><div id="guide-mascot" data-mascot="welcome" class="app-mascot" aria-hidden="true"></div></div><div class="app-guide-dots" aria-hidden="true"><i class="app-guide-dot current"></i><i class="app-guide-dot"></i><i class="app-guide-dot"></i><i class="app-guide-dot"></i></div><span id="guide-counter" class="app-guide-counter">1 / 4</span><div aria-live="polite" aria-atomic="true"><h2 id="guide-title">เริ่มจากขวดที่พร้อมรีไซเคิล</h2><p id="guide-copy"></p><p id="guide-tip" class="app-guide-tip"></p></div></div>
+    <div class="dialog-buttons"><button type="button" id="guide-prev" disabled>ย้อนกลับ</button><button type="button" id="guide-next" class="app-primary">ถัดไป →</button></div>
+  </dialog>
+  <dialog id="install-help" class="app-dialog" aria-labelledby="install-help-title"><div class="dialog-top"><span class="app-eyebrow">SAPPHA RECYCLE</span><button type="button" id="install-help-close" aria-label="ปิดคำแนะนำการติดตั้ง">ปิด</button></div><h2 id="install-help-title">พกเพื่อนรักษ์โลก<br>ไว้บนหน้าจอ</h2><p id="install-help-copy"></p><p class="install-offline">ยังต้องใช้อินเทอร์เน็ตเพื่อล็อกอิน อัปเดตแต้ม และใช้คูปอง การเพิ่มไอคอนไม่ได้เปิดใช้งานออฟไลน์</p></dialog>
   <script src="secure-client.js?v=3"></script>
   <script src="school-auth.js?v=2"></script>
-  <script src="activity.js?v=2"></script>
-  <script src="app.js?v=8"></script>
-<dialog id="reward-detail" class="friend-detail" aria-labelledby="reward-detail-title"><div class="detail-top"><span class="friend-kicker">ของขวัญจากการรักษ์โลก</span><button type="button" data-close-detail aria-label="ปิดรายละเอียด">✕</button></div><div class="detail-art"><span data-friend="rabbit" data-pose="point" aria-hidden="true"></span><img id="reward-detail-image" alt=""></div><h2 id="reward-detail-title"></h2><p id="reward-detail-cost"></p><p id="reward-detail-stock"></p><p class="detail-note">เมื่อแลกสำเร็จ จะได้รับคูปองสำหรับนำไปรับของที่ห้องสภานักเรียน</p><button type="button" id="reward-detail-confirm">ยืนยันแลกรางวัล</button><p id="reward-detail-status" role="status" aria-live="polite"></p></dialog></body>
+  <script src="activity.js?v=6"></script>
+  <script src="assets/vendor/animejs/anime.umd.min.js"></script>
+  <script src="assets/mascot-video/clips.js?v=4"></script>
+  <script src="mascot-scenes.js?v=1"></script>
+  <script src="mascot-original-rig.js?v=9"></script>
+  <script src="student-app.js?v=22"></script>
+  <script src="app.js?v=20"></script>
+<dialog id="reward-detail" class="friend-detail app-sheet" aria-labelledby="reward-detail-title"><div class="detail-top"><span class="friend-kicker">ของขวัญจากการรักษ์โลก</span><button type="button" data-close-detail aria-label="ปิดรายละเอียด">✕</button></div><div class="detail-art"><span data-friend="rabbit" data-pose="point" aria-hidden="true"></span><img id="reward-detail-image" alt=""></div><h2 id="reward-detail-title"></h2><p id="reward-detail-cost"></p><p id="reward-detail-stock"></p><p class="detail-note reward-recycle-note"><span class="material-symbols-rounded" aria-hidden="true">recycling</span><span>ใช้แต้มที่สะสมไว้แลกรางวัล<br>เมื่อยืนยันสำเร็จ รับคูปองไปแสดงที่ห้องสภานักเรียน</span></p><button type="button" id="reward-detail-confirm">ยืนยันแลกรางวัล</button><p id="reward-detail-status" role="status" aria-live="polite"></p></dialog></body>
 </html>

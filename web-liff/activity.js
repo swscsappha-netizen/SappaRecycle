@@ -2,6 +2,14 @@
 'use strict';
 const labels={PENDING:'รอตรวจสอบ',REVIEWING:'กำลังตรวจสอบ',RESOLVED:'ตรวจสอบแล้ว'};
 const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function describeFreshness(item,label,offline,formatTime=value=>value){
+ const at=item?.at?formatTime(item.at):null;
+ if(offline)return {state:'offline',text:at?'ออฟไลน์ · '+label+'ที่โหลดไว้เมื่อ '+at:'ออฟไลน์ · ยังไม่มีข้อมูล'+label+'ที่ยืนยัน'};
+ if(item?.state==='loading')return {state:'loading',text:'กำลังโหลด'+label+'ล่าสุด'+(at?' · แสดงข้อมูลเดิมจาก '+at:'')};
+ if(item?.state==='error')return {state:'error',text:'อัปเดต'+label+'ไม่สำเร็จ'+(at?' · แสดงข้อมูลจาก '+at:' · กดอัปเดตเพื่อลองใหม่')};
+ if(item?.state==='ready'&&at)return {state:'ready',text:label+'ล่าสุด · '+at};
+ return {state:'idle',text:'ยังไม่มีข้อมูล'+label+'ที่ยืนยัน'};
+}
 function makeSender({rpc,online=()=>true,save=()=>{},uuid=()=>crypto.randomUUID()}){
  let pending=null,busy=false;
  return {restore(value){pending=value;},get pending(){return pending;},get busy(){return busy;},async send(values){
@@ -17,7 +25,7 @@ function makeSender({rpc,online=()=>true,save=()=>{},uuid=()=>crypto.randomUUID(
   if(result.error||!result.data?.report_id)throw Error(result.error?.message||'ยังยืนยันการรับเรื่องไม่ได้ กรุณาลองส่งอีกครั้ง');const receipt=result.data;pending=null;save(null);return receipt;}finally{busy=false;}
  }};
 }
-if(typeof module!=='undefined'&&module.exports)module.exports={makeSender,escape,labels};
+if(typeof module!=='undefined'&&module.exports)module.exports={makeSender,escape,labels,describeFreshness};
 if(!root.document)return;
 const doc=root.document,$=id=>doc.getElementById(id),api=()=>root.StudentActivity;
 const time=value=>value?new Date(value).toLocaleString('th-TH',{timeZone:'Asia/Bangkok',day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'ยังไม่เคยอัปเดต';
@@ -36,8 +44,9 @@ function open(dialog,origin){if(!dialog.open)dialog.showModal();root.EcoMotion?.
 function sync(){
  if(!$('activity-status'))return;
  const state=api()?.freshness,offline=navigator.onLine===false;
- $('connection-status').textContent=offline?'ออฟไลน์ • ข้อมูลที่เห็นอาจยังไม่ใช่ข้อมูลล่าสุด':'ข้อมูลจากการโหลดล่าสุด • รายการรอส่งจากตู้จะปรากฏเมื่อบันทึกสำเร็จ';
- for(const key of ['balance','history']){const item=state?.[key]||{state:'idle',at:null};$(key+'-freshness').textContent=(key==='balance'?'ยอดแต้ม':'ประวัติ')+'อัปเดตล่าสุด: '+time(item.at)+(item.state==='loading'?' • กำลังโหลด':item.state==='error'?' • อัปเดตไม่สำเร็จ กรุณาลองใหม่':'');}
+ $('connection-status').textContent=offline?'ออฟไลน์ • ข้อมูลที่เห็นอาจยังไม่ใช่ข้อมูลล่าสุด':'แสดงข้อมูลล่าสุดที่โหลดได้';
+ for(const key of ['balance','history']){const summary=describeFreshness(state?.[key],key==='balance'?'แต้ม':'ประวัติ',offline,time),node=$(key+'-freshness');if(node){node.textContent=summary.text;node.dataset.freshness=summary.state;}}
+ const refresh=$('btn-refresh-history'),refreshText=refresh?.querySelector('[data-refresh-label]');if(refreshText)refreshText.textContent=state?.balance?.state==='loading'||state?.history?.state==='loading'?'กำลังอัปเดต…':'อัปเดต';
  $('history-more').hidden=!api()?.more;$('history-more').disabled=!!api()?.historyLoading||offline;
  $('history-more').textContent=api()?.historyLoading?'กำลังโหลด…':'โหลดประวัติเพิ่ม';
  $('open-council-reports').hidden=!api()?.student?.is_council_member;
@@ -47,7 +56,7 @@ function sync(){
 function openReport(log,origin){
  if(!ensureOwner())return;
  $('report-form').hidden=false;
- const values=sender.pending||draft||{used_at:log?.created_at||new Date().toISOString(),description:'',log_id:log?.log_id||''};
+ const values=sender.pending||(log?null:draft)||{used_at:log?.created_at||new Date().toISOString(),description:'',log_id:log?.log_id||''};
  $('report-time').value=localTime(values.used_at);$('report-text').value=values.description||'';$('report-log').value=values.log_id||'';
  $('report-reference').textContent=values.log_id?'อ้างอิงรายการ #'+values.log_id:'ไม่ได้อ้างอิงรายการ • ใช้แจ้งแต้มที่ยังไม่ปรากฏได้';
  $('report-submit-status').textContent=sender.pending?'ยังยืนยันผลครั้งก่อนไม่ได้ กดลองส่งอีกครั้งด้วยเลขคำขอเดิม':navigator.onLine===false?'ออฟไลน์ ยังไม่ได้ส่งเรื่อง':'';
@@ -57,7 +66,7 @@ function lockReport(){const locked=!!sender?.pending;$('report-time').readOnly=l
 function showHistory(id,origin){
  const log=api()?.logs.find(row=>String(row.log_id)===id);if(!log)return;
  const type=log.item_type==='PET'?'ขวดพลาสติก PET':log.item_type==='CAN'?'กระป๋องอะลูมิเนียม CAN':log.item_type==='REJECT'?'ส่งคืน / ไม่รับวัสดุ':'วัสดุประเภทอื่น';
- $('history-details').innerHTML='<dl class="activity-facts"><dt>เลขอ้างอิง</dt><dd>#'+escape(log.log_id)+'</dd><dt>วันและเวลา</dt><dd>'+escape(time(log.created_at))+' (เวลาไทย)</dd><dt>ประเภท</dt><dd>'+type+'</dd><dt>แต้มที่บันทึก</dt><dd>'+escape(log.points_earned)+' แต้ม</dd></dl><p class="activity-note">ข้อมูลนี้เป็นหนึ่งรายการที่ระบบบันทึก ไม่ใช่ยอดยืนยันจำนวนชิ้นจากการคำนวณแต้ม</p>';
+ $('history-details').innerHTML='<section class="history-summary"><span class="material-symbols-rounded" aria-hidden="true">recycling</span><p>'+type+'</p><strong>'+(Number(log.points_earned)>0?'+':'')+escape(log.points_earned)+'<small> แต้ม</small></strong><span>รายการที่ระบบบันทึก</span></section><dl class="activity-facts"><dt>เลขอ้างอิง</dt><dd>#'+escape(log.log_id)+'</dd><dt>วันและเวลา</dt><dd>'+escape(time(log.created_at))+' (เวลาไทย)</dd><dt>ประเภท</dt><dd>'+type+'</dd><dt>แต้มที่บันทึก</dt><dd>'+escape(log.points_earned)+' แต้ม</dd></dl><p class="activity-note">หากแต้มรายการนี้ไม่ถูกต้อง แจ้งให้สภาตรวจสอบได้ โดยแนบเลขอ้างอิงและเวลาให้อัตโนมัติ</p>';
  $('history-report').dataset.log=id;open($('history-dialog'),origin);
 }
 function renderList(message=''){
@@ -86,7 +95,7 @@ function reportDetail(id,origin){
 }
 function boot(){
  const home=$('tab-home');if(!home)return;
- const status=doc.createElement('div');status.className='activity-card';status.id='activity-status';status.innerHTML='<p id="connection-status" class="activity-note" role="status"></p><p id="balance-freshness" role="status"></p><p id="history-freshness" role="status"></p><div class="activity-actions"><button type="button" data-refresh-activity>ลองอัปเดตข้อมูล</button><button type="button" id="open-report">แต้มไม่เข้า / แจ้งปัญหา</button><button type="button" id="open-my-reports">ติดตามเรื่องของฉัน</button></div>';
+ const status=doc.createElement('div');status.className='activity-card';status.id='activity-status';status.innerHTML='<div class="activity-status-heading"><div class="activity-status-title"><span class="material-symbols-rounded" aria-hidden="true">info</span><h3>ข้อมูลและความช่วยเหลือ</h3></div><button type="button" id="btn-refresh-history" data-refresh-activity aria-label="อัปเดตแต้มและประวัติ"><span class="material-symbols-rounded" aria-hidden="true">refresh</span><span data-refresh-label>อัปเดต</span></button></div><p id="connection-status" class="activity-note" role="status"></p><p id="balance-freshness" role="status"></p><p id="history-freshness" role="status"></p><p class="activity-status-tip">รายการจากตู้จะปรากฏเมื่อระบบบันทึกสำเร็จ</p><div class="activity-actions"><button type="button" id="open-report"><span class="material-symbols-rounded" aria-hidden="true">support_agent</span><span>แจ้งปัญหาแต้ม</span><span class="material-symbols-rounded action-arrow" aria-hidden="true">chevron_right</span></button><button type="button" id="open-my-reports"><span class="material-symbols-rounded" aria-hidden="true">inbox</span><span>ติดตามเรื่อง</span><span class="material-symbols-rounded action-arrow" aria-hidden="true">chevron_right</span></button></div>';
  home.querySelector('.balance-hero')?.after(status);
  const more=doc.createElement('button');more.type='button';more.id='history-more';more.className='activity-button';more.textContent='โหลดประวัติเพิ่ม';more.hidden=true;$('recent-history-list')?.after(more);
  const councilButton=doc.createElement('button');councilButton.type='button';councilButton.id='open-council-reports';councilButton.className='activity-button';councilButton.textContent='รับเรื่องแต้มไม่เข้า / ตรวจสอบปัญหา';councilButton.hidden=true;$('view-scanner')?.prepend(councilButton);
@@ -101,7 +110,7 @@ function boot(){
   const close=event.target.closest('[data-close-activity]');if(close){close.closest('dialog').close();return;}
   const history=event.target.closest('[data-history-id]');if(history)showHistory(history.dataset.historyId,history);
   const detail=event.target.closest('[data-support-id]');if(detail)reportDetail(detail.dataset.supportId,detail);
-  if(event.target.closest('[data-refresh-activity]'))$('btn-refresh-history')?.click();
+
  });
  $('history-more').addEventListener('click',()=>api()?.history(true));
  $('open-report').addEventListener('click',event=>openReport(null,event.currentTarget));

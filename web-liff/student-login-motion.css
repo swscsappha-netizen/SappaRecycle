@@ -1,0 +1,86 @@
+/* Approved login scene; scoped to student login, preserves auth controls. */
+.student-app #modal-line-bind .login-friends.has-duo-rig{max-width:390px;aspect-ratio:640/390;overflow:visible;background:none!important;isolation:isolate}
+.student-login-scene{position:relative;width:100%;height:100%;isolation:isolate;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.student-login-scene .halo{position:absolute;border-radius:50%;z-index:-2;pointer-events:none}
+.student-login-scene .halo-back{width:82%;height:100%;top:0;background:radial-gradient(ellipse,#e2eacb 5%,#e9efd9 55%,#edf3e400 72%)}
+.student-login-scene .halo-front{width:68%;height:30%;bottom:12%;background:#e5edcf;opacity:.7}
+.student-login-scene .leaves{position:absolute;inset:0;width:100%;height:100%;fill:#adc18b;opacity:.5;z-index:-1;pointer-events:none}
+.student-login-stage{width:100%;aspect-ratio:640/330;background:url('assets/mascot-original-rig/original-static.png') center/80% auto no-repeat}
+.student-login-stage.has-rig{background:none}
+.student-login-stage .duo-rig{display:block;width:100%;height:auto;overflow:visible}
+/* Quiet continuous scene motion. Only transforms/opacity, no animated blur. */
+.student-login-scene [data-ambient]{pointer-events:none;animation-play-state:running}
+.student-login-scene[data-motion="paused"] [data-ambient]{animation-play-state:paused}
+.student-login-scene .halo-back{animation:student-ambient-glow 11s ease-in-out infinite alternate;transform-origin:50% 65%}
+.student-login-scene .halo-front{animation:student-ambient-drift 9s ease-in-out -3s infinite alternate}
+.student-login-scene .leaves path{transform-box:fill-box;transform-origin:50% 85%;animation:student-ambient-leaf 7s ease-in-out infinite alternate}
+.student-login-scene .leaves path:nth-child(2){animation-duration:8.5s;animation-delay:-3s}
+.student-login-scene .leaves path:nth-child(3){animation-duration:6.5s;animation-delay:-1.5s}
+.student-login-scene .scene-floor{position:absolute;left:17%;right:17%;bottom:22%;height:6%;border-radius:50%;background:radial-gradient(ellipse,#6177471c,transparent 70%);z-index:-1;animation:student-ambient-floor 5s ease-in-out infinite alternate}
+.student-login-scene:has(.student-login-stage[data-phase="entering"]) .scene-floor{animation-duration:.75s}
+.student-login-scene .scene-motes{position:absolute;inset:9% 12% 18%;z-index:-1;pointer-events:none}
+.student-login-scene .scene-motes i{position:absolute;width:4px;height:4px;border-radius:50%;background:#b6c793;opacity:.25;animation:student-ambient-mote 8s ease-in-out infinite alternate}
+.student-login-scene .scene-motes i:nth-child(1){left:18%;top:40%;animation-delay:-2s}
+.student-login-scene .scene-motes i:nth-child(2){right:19%;top:26%;width:3px;height:3px;animation-duration:10s;animation-delay:-5s}
+.student-login-scene .scene-motes i:nth-child(3){left:44%;top:14%;animation-duration:9s;animation-delay:-3s}
+.student-login-scene .scene-motes i:nth-child(4){right:9%;top:67%;width:3px;height:3px;animation-delay:-6s}
+@keyframes student-ambient-glow{from{transform:translate(-7px,4px) scale(.97);opacity:.78}to{transform:translate(8px,-6px) scale(1.05);opacity:1}}
+@keyframes student-ambient-drift{from{transform:translate(-6px,2px) scaleX(.97)}to{transform:translate(7px,-3px) scaleX(1.04)}}
+@keyframes student-ambient-leaf{from{transform:translate(-3px,5px) rotate(-7deg)}to{transform:translate(4px,-8px) rotate(8deg)}}
+@keyframes student-ambient-floor{from{transform:scaleX(.96);opacity:.65}to{transform:scaleX(1.04);opacity:.9}}
+@keyframes student-ambient-mote{from{transform:translate(-3px,7px);opacity:.15}to{transform:translate(5px,-9px);opacity:.45}}
+@media(prefers-reduced-motion:reduce){.student-login-scene [data-ambient]{animation:none!important;transform:none!important}}
+
+.student-app .app-mascot.has-duo-rig{background:none!important;clip-path:none!important;isolation:isolate}
+.student-app .app-mascot.has-duo-rig .student-login-scene{aspect-ratio:640/330;height:auto}
+.student-app .app-tab-companion .app-mascot.has-duo-rig{width:148px;max-width:45%}
+.student-app .app-guide-art{position:relative;isolation:isolate;overflow:hidden}
+.student-app .app-guide-art::before{content:"";position:absolute;inset:0 10%;border-radius:50%;background:radial-gradient(ellipse,#e2eacb99,transparent 70%);z-index:-1;animation:student-ambient-glow 11s ease-in-out infinite alternate}
+.student-app[data-motion-suspended] .app-guide-art::before{animation-play-state:paused}
+@media(prefers-reduced-motion:reduce){.student-app .app-guide-art::before{animation:none}}
+.student-app #app-onboarding:not([open]) .app-guide-art::before{animation-play-state:paused}
+
+/* UI choreography complements the character scene. */
+.student-app .app-nav-highlight[hidden]{display:none!important}
+.student-app .nav-tab-btn{position:relative;z-index:1;transition:color 180ms ease}
+.student-app .nav-tab-btn.active{background:transparent!important}
+.student-app :is(#store-category-filters button,.c-tab,.reward-card){transition:background-color 200ms ease,box-shadow 200ms ease,border-color 200ms ease}
+.student-app :is(.app-shortcuts button,.app-settings button){transition:background-color 180ms ease,box-shadow 180ms ease}
+@media(hover:hover) and (pointer:fine){.student-app .reward-card:hover{box-shadow:0 12px 28px #28423312}.student-app .app-shortcuts button:hover{background:#e9f0e1;box-shadow:0 5px 16px #2842330a}}
+@media(prefers-reduced-motion:reduce){.student-app .balance-hero::before,.student-app .balance-hero::after{animation:none}.student-app :is(#store-category-filters button,.c-tab,.reward-card,.app-shortcuts button,.app-settings button,.nav-tab-btn){transition:none}}
+
+/* Native old/new page snapshots give tabs continuous spatial travel. */
+@supports(view-transition-name:student-content){.student-app .tab-pane.active{view-transition-name:student-content}}
+::view-transition{pointer-events:none}
+::view-transition-group(student-content){animation-duration:360ms;animation-timing-function:cubic-bezier(.23,1,.32,1)}
+::view-transition-old(root){display:none}
+::view-transition-new(root){animation:none;mix-blend-mode:normal}
+::view-transition-old(student-content){animation:student-page-out 360ms cubic-bezier(.23,1,.32,1) both;mix-blend-mode:normal}
+::view-transition-new(student-content){animation:student-page-in 360ms cubic-bezier(.23,1,.32,1) both;mix-blend-mode:normal}
+:root[data-motion-direction="back"]::view-transition-old(student-content){animation-name:student-page-back-out}
+:root[data-motion-direction="back"]::view-transition-new(student-content){animation-name:student-page-back-in}
+@keyframes student-page-out{to{transform:translateX(-100%);opacity:1}}
+@keyframes student-page-in{from{transform:translateX(100%);opacity:1}to{transform:translateX(0);opacity:1}}
+@keyframes student-page-back-out{to{transform:translateX(100%);opacity:1}}
+@keyframes student-page-back-in{from{transform:translateX(-100%);opacity:1}to{transform:translateX(0);opacity:1}}
+@media(prefers-reduced-motion:reduce){.student-app .tab-pane.active{view-transition-name:none}::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}
+
+.student-app #bottom-nav{view-transition-name:student-nav}
+::view-transition-group(student-content){z-index:1;overflow:clip}
+::view-transition-old(student-content),::view-transition-new(student-content){background:#f5f9ef}
+::view-transition-group(student-nav){z-index:100;animation:none}
+::view-transition-old(student-nav){display:none}
+::view-transition-new(student-nav){animation:none}
+@media(prefers-reduced-motion:reduce){.student-app #bottom-nav{view-transition-name:none}}
+
+/* Imported user-generated clips are opaque cards, never background cut-outs. */
+.student-app .app-mascot.has-mascot-video{aspect-ratio:16/9;background-repeat:no-repeat!important;border-radius:18px;overflow:hidden}
+.student-app .has-mascot-video .app-mascot-video{object-fit:contain;border-radius:inherit;background:#f5f9ef}
+.student-app #modal-line-bind .login-friends.has-mascot-video{aspect-ratio:16/9;max-width:390px}
+.student-app .app-tab-companion .app-mascot.has-mascot-video{width:220px;max-width:65%}
+
+/* Verified alpha clips float within the selected scene; other clips retain their warm card. */
+.student-app .has-alpha-video .app-mascot-video{background:transparent}
+.student-app .old-guide-card .has-alpha-video{border-radius:0}
+.student-app #modal-line-bind .login-friends.has-mascot-video{border-radius:50% 50% 0 0 / 14% 14% 0 0}
+.student-app .app-tab-companion .app-mascot.has-mascot-video{width:190px;max-width:57%}

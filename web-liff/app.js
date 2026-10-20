@@ -22,6 +22,7 @@
   
   let selectedHomeCategory = 'all';
   let selectedStoreCategory = 'all';
+  let onlyAffordableRewards = false;
 
   let rewardsData = [];
   let couponsData = [];
@@ -51,7 +52,7 @@
           window.APP_CONFIG.SUPABASE_URL,
           window.APP_CONFIG.SUPABASE_ANON_KEY
         );
-        console.log("✅ Supabase Client Connected:", window.APP_CONFIG.SUPABASE_URL);
+        console.log(" Supabase Client Connected:", window.APP_CONFIG.SUPABASE_URL);
       } catch (e) {
         console.error("Supabase init error:", e);
       }
@@ -65,10 +66,10 @@
         if (liff.isLoggedIn()) {
           liffLoggedIn = true;
           currentLineProfile = await liff.getProfile();
-          console.log("🟢 LINE Profile Active:", currentLineProfile.displayName, currentLineProfile.userId);
+          console.log(" LINE Profile Active:", currentLineProfile.displayName, currentLineProfile.userId);
         } else {
           // Strict LINE Login: User must authenticate with LINE OAuth!
-          console.log("🔒 Not logged in to LINE -> Initiating LINE Login...");
+          console.log(" Not logged in to LINE -> Initiating LINE Login...");
           liff.login();
           return;
         }
@@ -158,13 +159,8 @@
   }
 
   function hideSplashScreen() {
-    const splash = document.getElementById('app-splash-screen');
-    if (splash) {
-      splash.classList.add('opacity-0', 'pointer-events-none');
-      setTimeout(() => {
-        if (splash.parentNode) splash.parentNode.removeChild(splash);
-      }, 500);
-    }
+    if(window.EcoMotion?.ready)window.EcoMotion.ready();
+    else document.getElementById('app-splash-screen')?.remove();
   }
 
   // --------------------------------------------------------------------------
@@ -179,11 +175,12 @@
     const nameEl = document.getElementById('line-bind-display-name');
 
     if (avatarEl && profile.pictureUrl) avatarEl.src = profile.pictureUrl;
-    if (nameEl) nameEl.textContent = `${profile.displayName} 🌿`;
+    if (nameEl) nameEl.textContent = `${profile.displayName} `;
 
     if (modal) {
       modal.classList.remove('hidden');
       modal.classList.add('flex');
+      window.EcoMotion?.login();
     }
   }
 
@@ -283,10 +280,11 @@
       .select('*').eq('student_id', activeStudent.student_id).single();
     if (error || !data) throw new Error('โหลดแต้มล่าสุดไม่สำเร็จ');
     const previousPoints = activeStudent.current_points;
+    const previousItems = activeStudent.total_bottles_recycled;
     activeStudent = data;
     freshness.balance={state:'ready',at:new Date().toISOString()}; notifyActivity();
     renderAll();
-    if (data.current_points > previousPoints) window.EcoMotion?.transfer('points',document.getElementById('dash-points-balance'));
+    if (data.current_points > previousPoints) window.EcoMotion?.transfer('points',document.getElementById('dash-points-balance'),{delta:data.current_points-previousPoints,levelUp:Number.isFinite(previousItems)&&Number.isFinite(data.total_bottles_recycled)&&[10,30,60].some(goal=>previousItems<goal&&data.total_bottles_recycled>=goal)});
     return true;
     } catch(error) { freshness.balance.state='error'; notifyActivity(); throw error; }
   }
@@ -386,17 +384,17 @@
     if (count < 10) {
       const needed = 10 - count;
       const pct = Math.round((count / 10) * 100);
-      return { rank: '🌱 ต้นกล้าฝึกหัด', next: `อีก ${needed} ชิ้น อัปเลเวล!`, pct: pct };
+      return { rank: ' ต้นกล้าฝึกหัด', next: `อีก ${needed} ชิ้น อัปเลเวล!`, pct: pct };
     } else if (count < 30) {
       const needed = 30 - count;
       const pct = Math.round(((count - 10) / 20) * 100);
-      return { rank: '🌿 ฮีโร่พิทักษ์ป่า', next: `อีก ${needed} ชิ้น เลเวลถัดไป!`, pct: pct };
+      return { rank: ' ฮีโร่พิทักษ์ป่า', next: `อีก ${needed} ชิ้น เลเวลถัดไป!`, pct: pct };
     } else if (count < 60) {
       const needed = 60 - count;
       const pct = Math.round(((count - 30) / 30) * 100);
-      return { rank: '🌳 พฤกษาผู้พิทักษ์โลก', next: `อีก ${needed} ชิ้น ขั้นสูงสุด!`, pct: pct };
+      return { rank: ' พฤกษาผู้พิทักษ์โลก', next: `อีก ${needed} ชิ้น ขั้นสูงสุด!`, pct: pct };
     } else {
-      return { rank: '👑 ยอดนักรีไซเคิลสรรพวิทย์', next: 'เลเวลสูงสุดแล้ว สุดยอดมาก! 🎉', pct: 100 };
+      return { rank: ' ยอดนักรีไซเคิลสรรพวิทย์', next: 'เลเวลสูงสุดแล้ว สุดยอดมาก! ', pct: 100 };
     }
   }
 
@@ -411,6 +409,7 @@
     renderRewardStore();
     renderCoupons();
     renderProfile();
+    window.PortalExperience?.accountReady(activeStudent, currentLineProfile);
   }
 
   function renderHeader() {
@@ -428,10 +427,10 @@
     const roleBadgeEl = document.getElementById('header-role-badge');
     if (roleBadgeEl) {
       if (isSuperAdmin) {
-        roleBadgeEl.textContent = '★ แอดมินสภานักเรียน';
+        roleBadgeEl.textContent = ' แอดมินสภานักเรียน';
         roleBadgeEl.className = 'text-[10px] sm:text-[11px] font-black text-[#b45309] bg-[#fef3c7] px-2 py-0.5 rounded-full border border-[#fde047] leading-none inline-block';
       } else if (isCouncil) {
-        roleBadgeEl.textContent = '★ สภานักเรียน';
+        roleBadgeEl.textContent = ' สภานักเรียน';
         roleBadgeEl.className = 'text-[10px] sm:text-[11px] font-black text-[#15803d] bg-[#dcfce7] px-2 py-0.5 rounded-full border border-[#86efac] leading-none inline-block';
       } else {
         roleBadgeEl.textContent = `${activeStudent.room} (เลขที่ ${activeStudent.no || '-'})`;
@@ -440,6 +439,7 @@
     }
   }
 
+  let rankOwner=null,previousBottleCount=null;
   function renderDashboard() {
     document.getElementById('dash-student-id').textContent = activeStudent.student_id;
     document.getElementById('dash-points-balance').textContent = (activeStudent.current_points || 0).toLocaleString();
@@ -458,7 +458,14 @@
     const rankInfo = getRankInfo(activeStudent.total_bottles_recycled);
     document.getElementById('dash-rank-badge').innerHTML = `<span class="material-symbols-rounded text-sm" style="font-variation-settings: 'FILL' 1;">eco</span> ${rankInfo.rank}`;
     document.getElementById('dash-rank-progress-text').textContent = rankInfo.next;
-    document.getElementById('dash-rank-bar').style.width = `${rankInfo.pct}%`;
+    const rankBar=document.getElementById('dash-rank-bar');
+    rankBar.style.width='100%';rankBar.style.transform=`scaleX(${rankInfo.pct/100})`;
+    const count=activeStudent.total_bottles_recycled;
+    if(rankOwner===activeStudent.student_id&&Number.isFinite(previousBottleCount)&&Number.isFinite(count)&&[10,30,60].some(goal=>previousBottleCount<goal&&count>=goal)){
+      window.EcoMotion?.filterChanged?.(document.getElementById('dash-rank-badge'));
+      if(typeof confetti==='function')confetti({particleCount:24,ticks:40,spread:45,disableForReducedMotion:true,colors:['#b4db92','#ffdc77'],origin:{y:.4}});
+    }
+    rankOwner=activeStudent.student_id;previousBottleCount=count;
   }
 
   function renderHistory() {
@@ -485,7 +492,7 @@
                 <p class="text-[11px] text-on-surface-variant font-bold">${new Date(log.created_at).toLocaleString('th-TH', {timeZone:'Asia/Bangkok',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} น.</p>
               </div>
             </div>
-            <span class="font-display font-black text-[15px] text-primary bg-primary-container/20 px-2.5 py-1 rounded-full">${log.points_earned>0?'+':''}${log.points_earned} Pts</span>
+            <span class="font-display font-black text-[15px] text-primary bg-primary-container/20 px-2.5 py-1 rounded-full">${log.points_earned>0?'+':''}${log.points_earned} แต้ม <span aria-hidden="true">›</span></span>
           </button>
         `;
       }).join('');
@@ -493,7 +500,7 @@
       listEl.innerHTML = `
         <div class="bg-surface-container-lowest p-5 rounded-[24px] border-2 border-secondary-container text-center text-[13px] text-on-surface-variant font-bold flex flex-col items-center gap-1">
           <span class="material-symbols-rounded text-3xl text-primary-container">recycling</span>
-          <span>ยังไม่มีประวัติการหยอดขวดในหมวดนี้ ลองไปหยอดที่ตู้ดูนะ! ♻️</span>
+          <span>ยังไม่มีประวัติการหยอดขวดในหมวดนี้ ลองไปหยอดที่ตู้ดูนะ! </span>
         </div>
       `;
     }
@@ -503,6 +510,10 @@
     const grid = document.getElementById('rewards-grid');
     if (renderCollectionState(grid, 'rewards')) return;
     grid.setAttribute('aria-busy', 'false');
+    const pointsKnown=Number.isFinite(activeStudent?.current_points),budgetButton=document.getElementById('filter-affordable'),budgetNote=document.getElementById('reward-budget-note');
+    if(!pointsKnown)onlyAffordableRewards=false;
+    if(budgetButton){budgetButton.disabled=!pointsKnown;budgetButton.setAttribute('aria-pressed',String(onlyAffordableRewards));}
+    if(budgetNote)budgetNote.textContent=pointsKnown?'อิงจากแต้มล่าสุดที่โหลดได้':'รอโหลดแต้มก่อนใช้ตัวกรอง';
     if (rewardsData.length === 0) {
       grid.innerHTML = '<div class="col-span-2 text-center py-8 text-on-surface-variant font-bold">ขณะนี้ยังไม่มีของรางวัลให้แลก</div>';
       return;
@@ -513,23 +524,25 @@
       displayRewards = rewardsData.filter(r => (r.category || 'stationery') === selectedStoreCategory);
     }
 
+    if(onlyAffordableRewards)displayRewards=displayRewards.filter(r=>pointsKnown&&r.stock_quantity>0&&r.points_required<=activeStudent.current_points);
     if (displayRewards.length === 0) {
-      grid.innerHTML = '<div class="col-span-2 text-center py-8 text-on-surface-variant font-bold">ไม่มีของรางวัลในหมวดนี้</div>';
+      grid.innerHTML = onlyAffordableRewards?'<div class="collection-status reward-budget-empty"><span class="material-symbols-rounded" aria-hidden="true">savings</span><h3>ยังไม่มีรางวัลที่แต้มพอแลกในหมวดนี้</h3><p>เก็บแต้มเพิ่ม หรือปิดตัวกรองเพื่อดูรางวัลทั้งหมด</p><button type="button" data-clear-budget-filter>ดูรางวัลในหมวดทั้งหมด</button></div>':'<div class="col-span-2 text-center py-8 text-on-surface-variant font-bold">ไม่มีของรางวัลในหมวดนี้</div>';
       return;
     }
 
     grid.innerHTML = displayRewards.map((r, index) => {
       const userPts = activeStudent ? (activeStudent.current_points || 0) : 0;
-      const canAfford = userPts >= r.points_required;
+      const canAfford = pointsKnown && userPts >= r.points_required;
       const inStock = r.stock_quantity > 0;
       const bgColor = PASTEL_COLORS[index % PASTEL_COLORS.length];
       const isSoldOut = !inStock;
-      const isInsufficient = inStock && !canAfford;
+      const isInsufficient = pointsKnown && inStock && !canAfford;
       const neededPts = Math.max(0, r.points_required - userPts);
 
       return `
         <div class="bg-surface-container-lowest rounded-[24px] sm:rounded-[32px] flex flex-col p-2 sm:p-2.5 reward-card h-full ${isSoldOut ? 'opacity-70 grayscale-[30%]' : ''}">
           <div class="h-28 sm:h-36 w-full rounded-[18px] sm:rounded-[24px] flex items-center justify-center relative p-3 sm:p-5 overflow-visible" style="background-color: ${isSoldOut ? '#E6E9E7' : bgColor};">
+            <span class="material-symbols-rounded reward-art-leaf" aria-hidden="true">eco</span>
             <img alt="${r.title}" class="max-h-full object-contain drop-shadow-md transition-transform hover:scale-110 duration-300" src="${r.image_url}">
             
             <div class="absolute -top-2.5 -right-1.5 sm:-top-3 sm:-right-2 bg-surface-container-lowest px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border-2 shadow-sm rotate-3 illustrative-badge ${isSoldOut ? 'border-surface-variant text-on-surface-variant' : r.stock_quantity <= 3 ? 'border-error-container text-error' : 'border-[#BBDEFB] text-[#1976D2]'}">
@@ -541,38 +554,20 @@
 
           <div class="p-2 sm:p-3 pt-3 sm:pt-4 flex flex-col flex-grow justify-between gap-2.5 sm:gap-3.5 text-center">
             <div>
-              <button type="button" class="btn-detail" data-detail-reward="${r.reward_id}">ดูรายละเอียด</button><h3 class="font-display text-[13px] sm:text-[16px] text-on-surface font-extrabold leading-tight tracking-tight line-clamp-2">${r.title}</h3>
-              <p class="font-display text-[13px] sm:text-[15px] text-[#F57F17] mt-0.5 sm:mt-1 font-black">${r.points_required.toLocaleString()} Pts</p>
+              <h3 class="font-display text-[13px] sm:text-[16px] text-on-surface font-extrabold leading-tight tracking-tight line-clamp-2">${r.title}</h3>
+              <p class="font-display text-[13px] sm:text-[15px] text-[#F57F17] mt-0.5 sm:mt-1 font-black"><span class="material-symbols-rounded reward-point-icon" aria-hidden="true">recycling</span>${r.points_required.toLocaleString()} <small>แต้ม</small></p>
             </div>
 
-            ${isSoldOut ? `
-              <button class="w-full bg-surface-variant text-on-surface-variant font-display text-[12px] sm:text-[14px] font-extrabold py-2.5 sm:py-3 rounded-[16px] sm:rounded-[20px] cursor-not-allowed btn-disabled flex items-center justify-center gap-1" onclick="window.showToast('ของรางวัลนี้หมดสต็อกชั่วคราว', 'warning')">
-                <span class="material-symbols-rounded text-base sm:text-lg" style="font-variation-settings: 'FILL' 1;">block</span>
-                หมดชั่วคราว
-              </button>
-            ` : isInsufficient ? `
-              <button class="w-full bg-surface-variant text-on-surface-variant font-display text-[11px] sm:text-[13px] font-extrabold py-2.5 sm:py-3 rounded-[16px] sm:rounded-[20px] cursor-pointer border-b-4 border-outline-variant flex items-center justify-center gap-1 hover:bg-surface-variant/80" onclick="window.showToast('สะสมอีก ${neededPts.toLocaleString()} แต้มเพื่อแลกชิ้นนี้ (หยอดขวด PET เพิ่มอีก ${Math.ceil(neededPts / 10)} ขวดนะ!)', 'info')">
-                <span class="material-symbols-rounded text-base sm:text-lg" style="font-variation-settings: 'FILL' 1;">lock</span>
-                อีก ${neededPts.toLocaleString()} แต้ม
-              </button>
-            ` : `
-              <button class="w-full bg-primary-container text-on-primary font-display text-[13px] sm:text-[15px] font-extrabold py-2.5 sm:py-3 rounded-[16px] sm:rounded-[20px] btn-squishy hover:bg-primary border-b-4 border-on-primary-container flex items-center justify-center gap-1 shadow-sm btn-redeem cursor-pointer" data-reward-id="${r.reward_id}">
-                <span class="material-symbols-rounded text-base sm:text-lg" style="font-variation-settings: 'FILL' 1;">redeem</span>
-                ดูรายละเอียดเพื่อแลก
-              </button>
-            `}
+            <button type="button" class="w-full btn-redeem" data-detail-reward="${r.reward_id}" aria-label="ดูรายละเอียด ${r.title}">
+              ${isSoldOut ? 'ดูของที่หมดชั่วคราว' : isInsufficient ? 'อีก '+neededPts.toLocaleString()+' แต้ม · ดูรายละเอียด' : 'ดูรายละเอียด →'}
+            </button>
           </div>
         </div>
       `;
     }).join('');
 
     grid.querySelectorAll('[data-detail-reward]').forEach(btn => btn.addEventListener('click', () => openRewardDetail(btn.dataset.detailReward,btn)));
-    grid.querySelectorAll('.btn-redeem').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const rId = e.currentTarget.getAttribute('data-reward-id');
-        openRewardDetail(rId, e.currentTarget);
-      });
-    });
+    if(currentTab==='tab-rewards')window.EcoMotion?.revealList?.(grid);
   }
 
   function renderCoupons() {
@@ -586,30 +581,32 @@
     if (renderCollectionState(listEl, 'coupons')) return;
     listEl.setAttribute('aria-busy', 'false');
     const activeFilter = document.querySelector('.c-tab.active')?.getAttribute('data-filter') || 'ACTIVE';
+    window.PortalExperience?.couponFilter(activeFilter);
     const displayList = activeFilter === 'ACTIVE' ? activeCoupons : usedCoupons;
 
     if (displayList.length === 0) {
       listEl.innerHTML = `
-        <div class="bg-surface-container-lowest p-8 rounded-[28px] border-2 border-secondary-container text-center text-on-surface-variant font-bold flex flex-col items-center gap-2">
-          <span class="material-symbols-rounded text-4xl text-primary-container">confirmation_number</span>
-          <span>ไม่มีคูปองในหมวดนี้ ไปที่เมนู "แลกรางวัล" เพื่อแลกของได้เลย! 🎁</span>
+        <div class="coupon-empty">
+          <span class="material-symbols-rounded" aria-hidden="true">${activeFilter === 'ACTIVE' ? 'confirmation_number' : 'task_alt'}</span>
+          <h3>${activeFilter === 'ACTIVE' ? 'คูปองใบแรก รอคุณอยู่' : 'ยังไม่มีรายการรับของแล้ว'}</h3>
+          <p>${activeFilter === 'ACTIVE' ? 'สะสมแต้มจากการรีไซเคิล แล้วเลือกของที่ชอบ<br>คูปองจะอยู่ที่นี่เมื่อแลกสำเร็จ' : 'เมื่อใช้คูปองรับรางวัลแล้ว<br>คุณกลับมาดูรายการย้อนหลังได้ที่นี่'}</p>
+          ${activeFilter === 'ACTIVE' ? '<button type="button" data-app-tab="tab-rewards">ดูของรางวัล</button>' : ''}
         </div>
       `;
     } else {
       listEl.innerHTML = displayList.map(c => `
-        <div class="bg-surface-container-lowest rounded-[28px] p-4 reward-card flex items-center justify-between cursor-pointer hover:border-primary-container transition-all" data-code="${c.coupon_code}" role="button" tabindex="0" aria-label="${c.status === 'ACTIVE' ? 'แสดงคูปอง' : 'คูปองใช้แล้ว'}">
-          <div class="flex items-center gap-3">
-            <div class="w-11 h-11 rounded-[16px] ${c.status === 'ACTIVE' ? 'bg-primary-container/20 text-primary' : 'bg-surface-variant text-on-surface-variant'} flex items-center justify-center">
+        <div class="bg-surface-container-lowest rounded-[28px] p-4 reward-card coupon-ticket flex items-center justify-between cursor-pointer hover:border-primary-container transition-all" data-code="${c.coupon_code}" data-status="${c.status}" role="button" tabindex="0" aria-label="${c.status === 'ACTIVE' ? 'แสดงคูปอง' : 'คูปองใช้แล้ว'}">
+          <div class="coupon-main">
+            <div class="coupon-icon w-11 h-11 rounded-[16px] ${c.status === 'ACTIVE' ? 'bg-primary-container/20 text-primary' : 'bg-surface-variant text-on-surface-variant'} flex items-center justify-center">
               <span class="material-symbols-rounded text-2xl">${c.status === 'ACTIVE' ? 'local_activity' : 'check_circle'}</span>
             </div>
-            <div>
+            <div class="coupon-copy">
+              <span class="coupon-status-label">${c.status === 'ACTIVE' ? 'พร้อมรับรางวัล' : 'รับของแล้ว'}</span>
               <h4 class="font-display font-extrabold text-[15px] text-on-surface">${c.reward_title}</h4>
-              <p class="text-[12px] font-display text-on-surface-variant font-bold">Code: ${c.coupon_code}</p>
+              <p class="coupon-code">รหัส ${c.coupon_code}</p>
             </div>
           </div>
-          <div class="${c.status === 'ACTIVE' ? 'bg-primary-container text-on-primary' : 'bg-surface-variant text-on-surface-variant'} font-display font-extrabold text-[12px] px-3.5 py-1.5 rounded-[16px] flex items-center gap-1 shadow-sm">
-            <span class="material-symbols-rounded text-sm">qr_code</span> ${c.status === 'ACTIVE' ? 'แสดง QR' : 'ใช้แล้ว'}
-          </div>
+          <div class="coupon-action"><span class="material-symbols-rounded" aria-hidden="true">${c.status === 'ACTIVE' ? 'qr_code_2' : 'check_circle'}</span><span>${c.status === 'ACTIVE' ? 'แสดง QR' : 'ใช้แล้ว'}</span></div>
         </div>
       `).join('');
 
@@ -693,8 +690,7 @@
   let detailRewardId=null,detailOrigin=null;
   function closeRewardDetail() {
     const dialog=document.getElementById('reward-detail');
-    if(dialog?.open) dialog.close();
-    detailOrigin?.focus();
+    if(dialog?.open){if(window.EcoMotion?.close)window.EcoMotion.close(dialog);else dialog.close();}
   }
   function openRewardDetail(id, origin) {
     const reward=rewardsData.find(r=>r.reward_id===id);
@@ -708,6 +704,7 @@
     document.getElementById('reward-detail-status').textContent='';
     const confirm=document.getElementById('reward-detail-confirm');
     confirm.disabled=!activeStudent||activeStudent.current_points<reward.points_required||reward.stock_quantity<=0;
+    confirm.textContent='ยืนยันแลกรางวัล';
     dialog.showModal();window.EcoMotion?.expand?.(dialog,origin?.closest?.('.reward-card') || origin);window.EcoMotion?.hydrate();
   }
 
@@ -745,18 +742,23 @@
       }
     }
 
+    if(detailButton){detailButton.textContent='✓ แลกสำเร็จ';window.EcoMotion?.filterChanged?.(detailButton);}
     closeRewardDetail();
     await loginStudent(activeStudent.student_id);
     await fetchRewards();
 
     if (typeof confetti === 'function') {
-      confetti({ particleCount: 35, spread: 65, colors:['#b4db92','#b8e1ed','#ffdc77'],disableForReducedMotion:true,origin: { y: 0.6 } });
+      confetti({ particleCount: 35, ticks:40, spread: 65, colors:['#b4db92','#b8e1ed','#ffdc77'],disableForReducedMotion:true,origin: { y: 0.6 } });
     }
-    redeemBusy=false;showCouponQRModal(uniqueToken);
+    redeemBusy=false;showCouponQRModal(uniqueToken,{redeemed:true});
     window.EcoMotion?.transfer('coupon',document.getElementById('modal-qr-title'));
   }
 
-  function showCouponQRModal(couponCode) {
+  let qrOrigin=null;
+  function restoreQROrigin(){if(!document.querySelector('dialog[open]'))qrOrigin?.focus?.();}
+  function closeCouponQRModal(){const modal=document.getElementById('modal-qr-presentation');if(modal?.open){if(window.EcoMotion?.close)window.EcoMotion.close(modal);else modal.close();}else{modal?.classList.add('hidden');modal?.classList.remove('flex');restoreQROrigin();}}
+  function showCouponQRModal(couponCode,{redeemed=false}={}) {
+    const success=document.getElementById('redeem-success-feedback'),next=document.getElementById('qr-next-coupons');if(success)success.hidden=!redeemed;if(next)next.hidden=!redeemed;
     const coupon = couponsData.find(c => c.coupon_code === couponCode);
     const title = coupon ? coupon.reward_title : 'ของรางวัล';
 
@@ -817,8 +819,9 @@
     }
 
     const modal = document.getElementById('modal-qr-presentation');
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
+    qrOrigin=document.activeElement;
+    if(typeof modal.showModal==='function'){if(!modal.open)modal.showModal();window.EcoMotion?.expand?.(modal,qrOrigin);document.getElementById('btn-close-qr-modal')?.focus();}
+    else{modal.classList.remove('hidden');modal.classList.add('flex');}
   }
 
   // --------------------------------------------------------------------------
@@ -865,12 +868,12 @@
         .single();
 
       if (error || !data) {
-        alert('❌ ไม่พบคูปองรหัส ' + cleanCode + ' ในระบบ');
+        alert(' ไม่พบคูปองรหัส ' + cleanCode + ' ในระบบ');
         return;
       }
 
       if (data.status === 'REDEEMED') {
-        alert(`⚠️ คูปองนี้ถูกใช้งานและรับของรางวัลไปแล้วเมื่อ: ${new Date(data.redeemed_at).toLocaleString('th-TH')}`);
+        alert(` คูปองนี้ถูกใช้งานและรับของรางวัลไปแล้วเมื่อ: ${new Date(data.redeemed_at).toLocaleString('th-TH')}`);
         return;
       }
 
@@ -905,7 +908,7 @@
         confetti({ particleCount: 80, spread: 90, origin: { y: 0.5 } });
       }
 
-      alert('✅ ยืนยันการส่งมอบของรางวัลสำเร็จ! คูปอง ' + pendingVerifyCoupon.coupon_code + ' ถูกตัดสถานะเป็น REDEEMED แล้ว');
+      alert(' ยืนยันการส่งมอบของรางวัลสำเร็จ! คูปอง ' + pendingVerifyCoupon.coupon_code + ' ถูกตัดสถานะเป็น REDEEMED แล้ว');
       pendingVerifyCoupon = null;
       await fetchRewards();
     } catch (e) {
@@ -966,7 +969,7 @@
       }
     }
 
-    alert('❌ ไม่พบนักเรียนรหัส ' + sId);
+    alert(' ไม่พบนักเรียนรหัส ' + sId);
   }
 
   async function adjustTargetStudentPoints(delta) {
@@ -992,7 +995,7 @@
         await loginStudent(activeStudent.student_id);
       }
 
-      alert(`✅ ปรับแต้มสำเร็จ! แต้มใหม่ของ ${adminTargetStudent.full_name} คือ ${newPoints.toLocaleString()} Pts`);
+      alert(` ปรับแต้มสำเร็จ! แต้มใหม่ของ ${adminTargetStudent.full_name} คือ ${newPoints.toLocaleString()} Pts`);
     } catch (e) {
       alert('เกิดข้อผิดพลาด: ' + e.message);
     }
@@ -1020,7 +1023,7 @@
         await loginStudent(activeStudent.student_id);
       }
 
-      alert(`✅ บันทึกแต้มสำเร็จ! แต้มใหม่ของ ${adminTargetStudent.full_name} คือ ${newPoints.toLocaleString()} Pts`);
+      alert(` บันทึกแต้มสำเร็จ! แต้มใหม่ของ ${adminTargetStudent.full_name} คือ ${newPoints.toLocaleString()} Pts`);
     } catch (e) {
       alert('เกิดข้อผิดพลาด: ' + e.message);
     }
@@ -1050,7 +1053,7 @@
         return;
       }
 
-      alert(`✅ สร้างคูปองสำเร็จ! รหัสคูปอง: ${uniqueCode} มอบให้นักเรียนรหัส ${sId} เรียบร้อยแล้ว`);
+      alert(` สร้างคูปองสำเร็จ! รหัสคูปอง: ${uniqueCode} มอบให้นักเรียนรหัส ${sId} เรียบร้อยแล้ว`);
       await fetchAdminLiveCoupons();
       if (activeStudent && activeStudent.student_id === sId) {
         await fetchStudentCoupons();
@@ -1103,7 +1106,7 @@
               ${isActive ? 'ตัดใช้แล้ว' : 'รีเซ็ต'}
             </button>
             <button class="btn-adm-delete-cpn text-[10px] font-bold px-2 py-1 rounded-[8px] bg-red-100 text-red-700 hover:bg-red-600 hover:text-white cursor-pointer" data-id="${c.coupon_id}" data-code="${c.coupon_code}">
-              ลบ 🗑️
+              ลบ 
             </button>
           </div>
         </div>
@@ -1144,7 +1147,7 @@
         return;
       }
 
-      alert('✅ ลบคูปองออกจากระบบเรียบร้อยแล้ว');
+      alert(' ลบคูปองออกจากระบบเรียบร้อยแล้ว');
       await fetchAdminLiveCoupons();
       if (activeStudent) await fetchStudentCoupons();
     } catch (e) {
@@ -1178,21 +1181,27 @@
   // --------------------------------------------------------------------------
   // 8. Navigation & Event Binding
   // --------------------------------------------------------------------------
-  function switchTab(tabId) {
+  function switchTab(tabId, options = {}) {
     if (!document.getElementById(tabId)) return;
+    const managedNavigation = window.PortalExperience?.navigate(tabId, options);
     window.EcoMotion?.navigate(tabId);
     currentTab = tabId;
     
-    // Switch Views
-    document.querySelectorAll('.tab-pane').forEach(p => {
-      p.classList.toggle('active', p.id === tabId);
-    });
+    const commitTabView = () => {
+      // Switch Views
+      document.querySelectorAll('.tab-pane').forEach(p => {
+        p.classList.toggle('active', p.id === tabId);
+      });
 
-    // Update Bottom Nav Styling
-    document.querySelectorAll('.nav-tab-btn').forEach(btn => {
-      const isActive = btn.getAttribute('data-tab') === tabId;
-      btn.classList.toggle('active', isActive);
-    });
+      // Update Bottom Nav Styling
+      document.querySelectorAll('.nav-tab-btn').forEach(btn => {
+        const isActive = btn.getAttribute('data-tab') === tabId;
+        btn.classList.toggle('active', isActive);
+      });
+
+      window.PortalExperience?.tabChanged(tabId);
+    };
+    if(window.EcoMotion?.transitionTab)window.EcoMotion.transitionTab(tabId,commitTabView);else commitTabView();
 
     // Camera Start/Stop
     if (tabId === 'view-scanner') {
@@ -1201,10 +1210,16 @@
       stopCameraIfRunning();
     }
 
-    // Scroll to top
-    window.scrollTo({ top: 0, behavior: 'auto' });
+    if (!managedNavigation) window.scrollTo({ top: 0, behavior: 'auto' });
   }
 
+  function setPhoneFeedback(state,message){
+    const box=document.getElementById('phone-save-feedback');if(!box)return;
+    box.hidden=false;box.dataset.state=state;
+    document.getElementById('phone-feedback-message').textContent=message;
+    document.getElementById('phone-feedback-icon').textContent=state==='success'?'check_circle':state==='error'?'error':'hourglass_top';
+    document.getElementById('phone-next-rewards').hidden=state!=='success';
+  }
   async function saveStudentPhone(phone) {
     if (!/^0[0-9]{9}$/.test(phone)) throw Error('กรุณากรอกเบอร์โทรศัพท์ 10 หลัก เริ่มต้นด้วย 0');
     if (!supabaseClient || !activeStudent) throw Error('ยังไม่ได้เชื่อมต่อบัญชีนักเรียน');
@@ -1214,6 +1229,11 @@
   }
 
   function bindEvents() {
+    document.getElementById('filter-affordable')?.addEventListener('click',()=>{onlyAffordableRewards=!onlyAffordableRewards;renderRewardStore();window.EcoMotion?.filterChanged?.(document.getElementById('rewards-grid'));});
+    document.getElementById('rewards-grid')?.addEventListener('click',event=>{if(event.target.closest('[data-clear-budget-filter]')){onlyAffordableRewards=false;renderRewardStore();document.getElementById('filter-affordable')?.focus();}});
+    document.getElementById('qr-next-coupons')?.addEventListener('click',()=>{closeCouponQRModal();switchTab('tab-coupons');});
+    document.getElementById('prof-phone')?.addEventListener('input',()=>{const box=document.getElementById('phone-save-feedback');if(box)box.hidden=true;});
+
     document.querySelector('[data-close-detail]')?.addEventListener('click',closeRewardDetail);
     document.getElementById('reward-detail-confirm')?.addEventListener('click',()=>{ if(detailRewardId) { const reward=rewardsData.find(r=>r.reward_id===detailRewardId); if(reward&&!redeemBusy) { if(!activeStudent.phone_number)closeRewardDetail(); attemptRedeemReward(detailRewardId); } } });
 
@@ -1304,8 +1324,11 @@
         });
         pill.classList.add('active', 'bg-primary', 'text-on-primary');
         pill.classList.remove('bg-surface-container-lowest', 'text-on-surface-variant', 'border', 'border-secondary-container');
-        selectedStoreCategory = pill.getAttribute('data-filter');
+        const nextCategory=pill.getAttribute('data-filter');
+        const changed=nextCategory!==selectedStoreCategory;
+        selectedStoreCategory=nextCategory;
         renderRewardStore();
+        if(changed)window.EcoMotion?.filterChanged?.(document.getElementById('rewards-grid'));
       });
     });
 
@@ -1327,11 +1350,13 @@
       const button=event.currentTarget;
       if(button.disabled) return;
       button.disabled=true;button.setAttribute('aria-busy','true');
+      const field=document.getElementById('prof-phone');field.readOnly=true;
+      setPhoneFeedback('loading','กำลังบันทึกเบอร์โทรศัพท์…');
       try {
         await saveStudentPhone(document.getElementById('prof-phone').value.trim());
-        renderProfile();showToast('บันทึกเบอร์โทรศัพท์เรียบร้อยแล้ว','success');
-      } catch(error) { showToast(error.message,'error'); }
-      finally { button.disabled=false;button.setAttribute('aria-busy','false'); }
+        renderProfile();setPhoneFeedback('success','บันทึกเบอร์โทรศัพท์เรียบร้อยแล้ว');
+      } catch(error) { setPhoneFeedback('error',error.message); }
+      finally { field.readOnly=false;button.disabled=false;button.setAttribute('aria-busy','false'); }
     });
 
     // 8. Gatekeeper Modal Events
@@ -1351,14 +1376,10 @@
     });
 
     // 9. QR Modal close
-    document.getElementById('btn-close-qr-modal')?.addEventListener('click', () => {
-      document.getElementById('modal-qr-presentation').classList.add('hidden');
-      document.getElementById('modal-qr-presentation').classList.remove('flex');
-    });
-    document.getElementById('btn-close-qr-backdrop')?.addEventListener('click', () => {
-      document.getElementById('modal-qr-presentation').classList.add('hidden');
-      document.getElementById('modal-qr-presentation').classList.remove('flex');
-    });
+    document.getElementById('btn-close-qr-modal')?.addEventListener('click',closeCouponQRModal);
+    document.getElementById('modal-qr-presentation')?.addEventListener('close',restoreQROrigin);
+    document.getElementById('reward-detail')?.addEventListener('cancel',event=>{event.preventDefault();closeRewardDetail();});
+    document.getElementById('reward-detail')?.addEventListener('close',()=>{if(!document.querySelector('dialog[open]'))detailOrigin?.focus?.();});
 
     // 10. Council Scanner manual input
     document.getElementById('btn-verify-manual')?.addEventListener('click', () => {
@@ -1390,11 +1411,12 @@
         modal.classList.add('hidden');
         modal.classList.remove('flex');
       }
-      showToast(`ยินดีต้อนรับคุณ ${activeStudent?.full_name || ''} 🌿`);
+      showToast(`ยินดีต้อนรับคุณ ${activeStudent?.full_name || ''} `);
     });
   }
 
   window.StudentActivity = {
+    navigate:switchTab,
     get student(){return activeStudent;}, get logs(){return recycleLogsData;}, get freshness(){return freshness;},
     get more(){return historyMore;}, get historyLoading(){return collectionState.history==='loading';},
     history:fetchStudentRecycleLogs,
