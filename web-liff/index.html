@@ -96,24 +96,10 @@
   <!-- ===================================================================
        FULL-SCREEN SPLASH SCREEN LOADER (หน้าจอโหลดก่อนเข้าใช้งาน)
        =================================================================== -->
-  <div id="app-splash-screen" class="fixed inset-0 z-[200] bg-surface flex flex-col items-center justify-center gap-6 transition-all duration-500 ease-out px-4">
-    <div class="splash-halo" aria-hidden="true"></div>
+  <div id="app-splash-screen" role="status" aria-label="กำลังโหลด Sappha Recycle" class="fixed inset-0 z-[200] bg-surface flex flex-col items-center justify-center transition-all duration-500 ease-out px-4">
     <div class="splash-brand-reveal" role="img" aria-label="ตรา Sappha Recycle เคลื่อนไหว">
       <img id="brand-reveal-poster" src="assets/brand-motion/sr-reveal.jpg" width="640" height="640" alt="">
       <video id="brand-reveal-video" muted playsinline preload="none" tabindex="-1" aria-hidden="true" hidden></video>
-    </div>
-    <div id="splash-mascot" class="app-mascot" data-mascot="welcome" aria-hidden="true"></div>
-    <div class="splash-brand flex flex-col items-center text-center">
-      <h1 class="font-display text-[26px] font-black text-primary tracking-tight">Sappha Recycle</h1>
-      <span class="text-[12px] font-extrabold text-on-surface-variant font-thai">โรงเรียนสรรพวิทยาคม</span>
-    </div>
-
-    <div class="splash-status flex items-center gap-2.5 bg-surface-container-low px-4 py-2.5 rounded-full border border-secondary-container shadow-sm">
-      <svg class="animate-spin h-4 w-4 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-      </svg>
-      <span class="text-[12px] font-bold text-primary font-thai" id="splash-loading-text">กำลังโหลดข้อมูลนักเรียน... </span>
     </div>
   </div>
 
