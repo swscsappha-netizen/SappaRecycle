@@ -12,6 +12,10 @@
 (function () {
   'use strict';
 
+  function notify(message){
+    if(window.AdminTools?.notify){window.AdminTools.notify(message);return;}
+    let node=document.getElementById('admin-init-notice');if(!node){node=document.createElement('p');node.id='admin-init-notice';node.setAttribute('role','alert');document.body.prepend(node);}node.textContent=message;
+  }
   let supabaseClient = null;
   let currentAdminTab = 'tab-manage-analytics';
   let adminRewards = [];
@@ -50,9 +54,10 @@
       try {
         supabaseClient = window.createSecureClient(
           window.APP_CONFIG.SUPABASE_URL,
-          window.APP_CONFIG.SUPABASE_ANON_KEY
+          window.APP_CONFIG.SUPABASE_ANON_KEY,
+          {beforeMutation:request=>window.AdminTools.prepareMutation(request,supabaseClient),afterMutation:(result,args)=>window.AdminTools.afterMutation(result,args)}
         );
-        console.log("✅ Admin Supabase Connected:", window.APP_CONFIG.SUPABASE_URL);
+        console.log(" Admin Supabase Connected:", window.APP_CONFIG.SUPABASE_URL);
       } catch (e) {
         console.error("Admin Supabase init error:", e);
       }
@@ -76,6 +81,7 @@
     bindAdminEvents();
     await loadInitialData();
     await loadBindingRequests();
+    window.AdminTools?.mount({client:supabaseClient,actor:currentAdminUser,navigate:switchAdminTab,refresh:async()=>{await loadInitialData();await loadBindingRequests();},openReward:openEditRewardModal,openStudent:openStudentEditorModal,bindings:loadBindingRequests});
   }
 
   async function verifyAdminPermissions() {
@@ -91,28 +97,24 @@
   }
 
   async function loadBindingRequests() {
-    const { data, error } = await supabaseClient.rpc('list_binding_requests', {});
-    if (error) return;
-    let panel = document.getElementById('binding-requests-panel');
-    if (!panel) { panel=document.createElement('section'); panel.id='binding-requests-panel'; document.getElementById('view-admin-dashboard').appendChild(panel); }
+    // School-email verification binds ordinary accounts automatically.
+    // Only existing conflicting account records need administrative review.
+    const {data,error}=await supabaseClient.rpc('admin_inbox',{});
+    if(error)return;
+    let panel=document.getElementById('binding-requests-panel');
+    if(!panel){panel=document.createElement('section');panel.id='binding-requests-panel';panel.hidden=true;document.getElementById('view-admin-dashboard').appendChild(panel);}
     panel.replaceChildren();
-    const title=document.createElement('h2'); title.textContent='คำขอผูกบัญชี LINE — ตรวจสอบตัวตนก่อนอนุมัติ'; panel.appendChild(title);
-    const refresh=document.createElement('button'); refresh.textContent='รีเฟรชคำขอ'; refresh.onclick=loadBindingRequests; panel.appendChild(refresh);
-    for (const request of data || []) {
-      const row=document.createElement('div'); row.className='p-4 m-2 border rounded-xl';
-      const text=document.createElement('p'); text.textContent=request.student_id+' '+request.full_name+' '+request.room+' เบอร์ '+request.phone_number; row.appendChild(text);
-      const approve=document.createElement('button'); approve.className='bg-green-700 text-white p-2 rounded-lg'; approve.textContent='ตรวจสอบตัวตนแล้ว อนุมัติ';
-      approve.onclick=async()=>{
-        if(!confirm('ยืนยันว่าตรวจสอบตัวตนของ '+request.full_name+' แล้ว และบัญชี LINE นี้เป็นของนักเรียนจริง?'))return;
-        approve.disabled=true;
-        const result=await supabaseClient.rpc('approve_account_binding',{p_line_user_id:request.line_user_id});
-        if(result.error) { alert(result.error.message); approve.disabled=false; } else await loadBindingRequests();
-      };
-      row.appendChild(approve); panel.appendChild(row);
+    const title=document.createElement('h2');title.textContent='ปัญหาการเชื่อม LINE ที่ต้องตรวจสอบ';panel.append(title);
+    const note=document.createElement('p');note.textContent='ผู้ใช้ทั่วไปผูกบัญชีอัตโนมัติหลังยืนยันอีเมลโรงเรียน ส่วนนี้แสดงเฉพาะรายการที่บัญชีชนกัน';panel.append(note);
+    for(const request of data?.bindings||[]){
+      const row=document.createElement('div'),text=document.createElement('span');text.textContent=request.student_id+' '+request.full_name+' · '+request.issue;
+      const review=document.createElement('button');review.type='button';review.textContent='ตรวจสอบบัญชี';review.onclick=()=>openStudentEditorModal(request.student_id);
+      row.append(text,review);panel.append(row);
     }
   }
 
   function showAccessDeniedScreen() {
+    document.getElementById('admin-auth-loading')?.remove();
     const deniedView = document.getElementById('view-access-denied');
     const adminView = document.getElementById('view-admin-dashboard');
 
@@ -126,6 +128,7 @@
   }
 
   function showAdminDashboard() {
+    document.getElementById('admin-auth-loading')?.remove();
     const deniedView = document.getElementById('view-access-denied');
     const adminView = document.getElementById('view-admin-dashboard');
 
@@ -202,8 +205,8 @@
     document.getElementById('metric-points-count').textContent = `${totalPoints.toLocaleString()} Pts`;
     document.getElementById('metric-co2-saved').textContent = `${co2Saved.toFixed(2)} kg`;
 
-    document.getElementById('stat-tree-equivalent').textContent = `${treeEquivalent} ต้น 🌳`;
-    document.getElementById('stat-energy-saved').textContent = `${energySaved} kWh ⚡`;
+    document.getElementById('stat-tree-equivalent').textContent = `${treeEquivalent} ต้น `;
+    document.getElementById('stat-energy-saved').textContent = `${energySaved} kWh `;
 
     renderDailyTrendChart(logs);
     renderRatioDonutChart(petCount, canCount);
@@ -251,13 +254,13 @@
             {
               label: 'ขวด PET (+10)',
               data: petData,
-              backgroundColor: '#1976D2',
+              backgroundColor: '#56856b',
               borderRadius: 8
             },
             {
               label: 'กระป๋อง CAN (+20)',
               data: canData,
-              backgroundColor: '#F57F17',
+              backgroundColor: '#b89446',
               borderRadius: 8
             }
           ]
@@ -299,7 +302,7 @@
           labels: hasData ? ['ขวด PET', 'กระป๋อง CAN'] : ['ยังไม่มีข้อมูล'],
           datasets: [{
             data: hasData ? [petCount, canCount] : [1],
-            backgroundColor: hasData ? ['#1976D2', '#F57F17'] : ['#E0E0E0'],
+            backgroundColor: hasData ? ['#56856b', '#b89446'] : ['#E0E0E0'],
             borderWidth: 2,
             borderColor: '#ffffff'
           }]
@@ -331,14 +334,14 @@
     });
 
     const sortedRooms = Object.values(roomCounts).sort((a, b) => b.count - a.count).slice(0, 5);
-    const MEDALS = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
+    const MEDALS = ['1', '2', '3', '4', '5'];
 
     if (sortedRooms.length === 0) {
       listEl.innerHTML = `
         <div class="bg-surface-container-low p-6 rounded-[20px] border border-secondary-container text-center flex flex-col items-center gap-2 text-on-surface-variant">
           <span class="material-symbols-rounded text-3xl text-primary-container">recycling</span>
           <span class="text-[13px] font-bold">ยังไม่มีประวัติการรีไซเคิลของห้องเรียน</span>
-          <span class="text-[11px] text-on-surface-variant/70 font-thai">เมื่อนักเรียนเริ่มหยอดขวดที่ตู้ อันดับห้องเรียนจะแสดงขึ้นที่นี่อัตโนมัติ 🌿</span>
+          <span class="text-[11px] text-on-surface-variant/70 font-thai">เมื่อนักเรียนเริ่มหยอดขวดที่ตู้ อันดับห้องเรียนจะแสดงขึ้นที่นี่อัตโนมัติ </span>
         </div>
       `;
       return;
@@ -347,7 +350,7 @@
     listEl.innerHTML = sortedRooms.map((r, i) => `
       <div class="bg-surface-container-low p-3 rounded-[18px] border border-secondary-container flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <span class="text-xl">${MEDALS[i] || '🎖️'}</span>
+          <span class="text-xl">${MEDALS[i] || ''}</span>
           <div>
             <strong class="font-display text-[14px] text-on-surface">ชั้น ${r.room}</strong>
             <span class="text-[11px] text-on-surface-variant font-bold block">${r.count} ชิ้นรีไซเคิล</span>
@@ -407,7 +410,7 @@
                 <h3 class="font-display text-[16px] font-black text-on-surface mt-1 truncate" title="${r.title}">${r.title}</h3>
               </div>
               <div class="flex items-center gap-2">
-                <strong class="text-[15px] font-black text-[#F57F17]">${r.points_required.toLocaleString()} Pts</strong>
+                <strong class="text-[15px] font-black text-[#b89446]">${r.points_required.toLocaleString()} Pts</strong>
                 <span class="text-[11px] font-bold text-on-surface-variant">• สต็อก: <b class="${inStock ? 'text-primary' : 'text-error'}">${r.stock_quantity} ชิ้น</b></span>
               </div>
             </div>
@@ -425,13 +428,13 @@
 
             <div class="grid grid-cols-3 gap-1.5 pt-1">
               <button class="btn-edit-reward py-2 rounded-[10px] bg-surface-container hover:bg-surface-variant font-bold text-[12px] cursor-pointer" data-id="${r.reward_id}">
-                ✏️ แก้ไข
+                 แก้ไข
               </button>
               <button class="btn-toggle-active-reward py-2 rounded-[10px] ${isActive ? 'bg-yellow-50 text-yellow-800 hover:bg-yellow-100' : 'bg-primary-container/20 text-primary hover:bg-primary-container/30'} font-bold text-[12px] cursor-pointer" data-id="${r.reward_id}" data-active="${isActive}">
                 ${isActive ? 'ซ่อน' : 'แสดง'}
               </button>
               <button class="btn-delete-reward py-2 rounded-[10px] bg-red-50 text-red-700 hover:bg-red-600 hover:text-white font-bold text-[12px] cursor-pointer transition-colors" data-id="${r.reward_id}" data-title="${r.title}">
-                ลบ 🗑️
+                ลบ 
               </button>
             </div>
           </div>
@@ -466,9 +469,7 @@
       btn.addEventListener('click', async () => {
         const rId = btn.getAttribute('data-id');
         const title = btn.getAttribute('data-title');
-        if (confirm(`ยืนยันการลบของรางวัล "${title}" ออกจากระบบหรือไม่?`)) {
-          await deleteReward(rId);
-        }
+        await deleteReward(rId);
       });
     });
   }
@@ -491,7 +492,7 @@
     const reward = adminRewards.find(r => r.reward_id === rewardId);
     if (!reward) return;
 
-    document.getElementById('modal-reward-form-title').textContent = '✏️ แก้ไขข้อมูลของรางวัล';
+    document.getElementById('modal-reward-form-title').textContent = ' แก้ไขข้อมูลของรางวัล';
     document.getElementById('form-reward-id').value = reward.reward_id;
     document.getElementById('form-reward-title').value = reward.title;
     document.getElementById('form-reward-points').value = reward.points_required;
@@ -513,13 +514,13 @@
   async function saveRewardFromForm() {
     const rId = document.getElementById('form-reward-id').value.trim();
     const title = document.getElementById('form-reward-title').value.trim();
-    const points = parseInt(document.getElementById('form-reward-points').value, 10);
-    const stock = parseInt(document.getElementById('form-reward-stock').value, 10);
+    const points = Number(document.getElementById('form-reward-points').value);
+    const stock = Number(document.getElementById('form-reward-stock').value);
     const category = document.getElementById('form-reward-category').value;
     const image = document.getElementById('form-reward-image').value.trim() || DEFAULT_REWARD_IMAGES[0];
 
-    if (!title || isNaN(points) || isNaN(stock)) {
-      alert('กรุณากรอกข้อมูลชื่อ, แต้ม, และสต็อกให้ครบถ้วน');
+    if (!title || !document.getElementById('form-reward-points').value || !document.getElementById('form-reward-stock').value || !Number.isSafeInteger(points) || !Number.isSafeInteger(stock) || points<0 || stock<0) {
+      notify('กรอกชื่อรางวัล และระบุแต้มกับสต็อกเป็นจำนวนเต็มตั้งแต่ศูนย์');
       return;
     }
 
@@ -539,7 +540,7 @@
           .eq('reward_id', rId);
 
         if (error) throw error;
-        alert('✅ แก้ไขข้อมูลของรางวัลสำเร็จ!');
+        notify(' แก้ไขข้อมูลของรางวัลสำเร็จ!');
       } else {
         const { error } = await supabaseClient
           .from('rewards')
@@ -553,14 +554,14 @@
           });
 
         if (error) throw error;
-        alert('✅ เพิ่มของรางวัลใหม่เรียบร้อยแล้ว!');
+        notify(' เพิ่มของรางวัลใหม่เรียบร้อยแล้ว!');
         if (typeof confetti === 'function') confetti({ particleCount: 50 });
       }
 
       closeRewardModal();
       await fetchAdminRewards();
     } catch (e) {
-      alert('เกิดข้อผิดพลาด: ' + e.message);
+      notify('เกิดข้อผิดพลาด: ' + e.message);
     }
   }
 
@@ -578,7 +579,7 @@
       if (error) throw error;
       await fetchAdminRewards();
     } catch (e) {
-      alert('เกิดข้อผิดพลาด: ' + e.message);
+      notify('เกิดข้อผิดพลาด: ' + e.message);
     }
   }
 
@@ -593,53 +594,20 @@
       if (error) throw error;
       await fetchAdminRewards();
     } catch (e) {
-      alert('เกิดข้อผิดพลาด: ' + e.message);
+      notify('เกิดข้อผิดพลาด: ' + e.message);
     }
   }
 
   async function deleteReward(rewardId) {
     if (!supabaseClient) return;
-
     try {
-      // 1. Check if coupons reference this reward
-      const { data: linkedCoupons } = await supabaseClient
-        .from('coupons')
-        .select('coupon_id')
-        .eq('reward_id', rewardId);
-
-      if (linkedCoupons && linkedCoupons.length > 0) {
-        const choice = confirm(
-          `⚠️ ของรางวัลนี้มีประวัติคูปองที่เคยแลกไปแล้ว ${linkedCoupons.length} ใบ\n\n` +
-          `• กด [ตกลง / OK] เพื่อ "ลบประวัติคูปองที่เกี่ยวข้องทั้งหมด และลบของรางวัลถาวร"\n` +
-          `• กด [ยกเลิก / Cancel] เพื่อ "แค่ซ่อนของรางวัลออกจากร้านค้าแทน" (นักเรียนจะไม่เห็นในร้าน แต่ประวัติยังอยู่)`
-        );
-
-        if (choice) {
-          // Cascade delete linked coupons first to satisfy foreign key constraint
-          await supabaseClient.from('coupons').delete().eq('reward_id', rewardId);
-          await supabaseClient.from('rewards').delete().eq('reward_id', rewardId);
-          alert('✅ ลบของรางวัลและคูปองที่เกี่ยวข้องออกจากระบบถาวรเรียบร้อยแล้ว');
-        } else {
-          // Soft delete / Hide reward
-          await supabaseClient.from('rewards').update({ is_active: false }).eq('reward_id', rewardId);
-          alert('🔒 ปิดการแสดงผล/ซ่อนของรางวัลนี้ออกจากหน้าร้านค้านักเรียนเรียบร้อยแล้ว');
-        }
-      } else {
-        // Direct delete if no foreign key conflict
-        const { error } = await supabaseClient
-          .from('rewards')
-          .delete()
-          .eq('reward_id', rewardId);
-
-        if (error) throw error;
-        alert('✅ ลบของรางวัลออกจากระบบเรียบร้อยแล้ว');
-      }
-
-      await fetchAdminRewards();
-      await fetchAdminCoupons();
-    } catch (e) {
-      alert('เกิดข้อผิดพลาด: ' + e.message);
-    }
+      const linked=await supabaseClient.from('coupons').select('coupon_id').eq('reward_id',rewardId);
+      if(linked.error)throw linked.error;
+      // Keep coupon history: a referenced reward can only be hidden.
+      const result=linked.data?.length ? await supabaseClient.from('rewards').update({is_active:false}).eq('reward_id',rewardId) : await supabaseClient.from('rewards').delete().eq('reward_id',rewardId);
+      if(result.error)throw result.error;
+      await fetchAdminRewards();await fetchAdminCoupons();
+    }catch(e){notify('เกิดข้อผิดพลาด: '+e.message);}
   }
 
   // --------------------------------------------------------------------------
@@ -709,22 +677,22 @@
       const isCouncil = s.is_council_member || s.student_id === '32650';
       return `
         <tr class="border-b border-secondary-container/40 hover:bg-surface-container-low/50">
-          <td class="py-3 px-3 font-display font-black text-primary">${s.student_id}</td>
-          <td class="py-3 px-3">
+          <td data-label="รหัสนักเรียน" class="student-id-cell py-3 px-3 font-display font-black text-primary">${s.student_id}</td>
+          <td class="student-name-cell py-3 px-3">
             <div class="flex items-center gap-1.5 flex-wrap">
               <strong class="font-bold text-on-surface">${s.full_name}</strong>
               ${isCouncil ? '<span class="text-[10px] font-black text-[#b45309] bg-[#fef3c7] px-1.5 py-0.2 rounded border border-[#fde047]">สภานักเรียน</span>' : ''}
-              ${s.line_user_id ? '<span class="text-[9px] font-black text-[#06C755] bg-[#E8F8EE] px-1.5 py-0.2 rounded border border-[#86EFAC]">ผูก LINE แล้ว 🔗</span>' : '<span class="text-[9px] font-bold text-on-surface-variant/60 bg-surface-container px-1.5 py-0.2 rounded">ยังไม่ผูก LINE</span>'}
+              ${s.line_user_id ? '<span class="text-[9px] font-black text-[#06C755] bg-[#E8F8EE] px-1.5 py-0.2 rounded border border-[#86EFAC]">ผูก LINE แล้ว </span>' : '<span class="text-[9px] font-bold text-on-surface-variant/60 bg-surface-container px-1.5 py-0.2 rounded">ยังไม่ผูก LINE</span>'}
             </div>
           </td>
-          <td class="py-3 px-3 font-bold text-on-surface-variant">ชั้น ${s.room} (เลขที่ ${s.no || '-'})</td>
-          <td class="py-3 px-3 text-[12px] font-bold ${s.phone_number ? 'text-on-surface' : 'text-on-surface-variant/60'}">
+          <td data-label="ชั้น / ห้อง" class="student-room-cell py-3 px-3 font-bold text-on-surface-variant">${s.room} · เลขที่ ${s.no || '-'}</td>
+          <td data-label="ติดต่อ" class="student-phone-cell py-3 px-3 text-[12px] font-bold ${s.phone_number ? 'text-on-surface' : 'text-on-surface-variant/60'}">
             ${s.phone_number || 'ยังไม่ได้ระบุ'}
           </td>
-          <td class="py-3 px-3 font-display font-black text-primary text-[15px]">
-            ${(s.current_points || 0).toLocaleString()} Pts
+          <td data-label="แต้มสะสม" class="student-points-cell py-3 px-3 font-display font-black text-primary text-[15px]">
+            ${(s.current_points || 0).toLocaleString()} <small>แต้ม</small>
           </td>
-          <td class="py-3 px-3 text-right">
+          <td class="student-actions-cell py-3 px-3 text-right">
             <div class="flex items-center justify-end gap-1">
               <button class="btn-table-quick-add text-[11px] font-black px-2 py-1 rounded-[8px] bg-primary-container/20 text-primary hover:bg-primary hover:text-white cursor-pointer" data-id="${s.student_id}" data-delta="50">
                 +50
@@ -732,8 +700,9 @@
               <button class="btn-table-quick-add text-[11px] font-black px-2 py-1 rounded-[8px] bg-primary-container/20 text-primary hover:bg-primary hover:text-white cursor-pointer" data-id="${s.student_id}" data-delta="100">
                 +100
               </button>
+              <button type="button" class="btn-table-history text-[11px] px-2.5 py-1 rounded-[8px] bg-secondary-container cursor-pointer" data-id="${s.student_id}"><span class="material-symbols-rounded" aria-hidden="true">history</span> ประวัติแต้ม</button>
               <button class="btn-table-manage-std text-[11px] font-bold px-2.5 py-1 rounded-[8px] bg-secondary-container hover:bg-secondary-container/80 cursor-pointer" data-id="${s.student_id}">
-                ✏️ จัดการ
+                 จัดการ
               </button>
             </div>
           </td>
@@ -741,6 +710,7 @@
       `;
     }).join('');
 
+    tbody.querySelectorAll('.btn-table-history').forEach(btn=>btn.addEventListener('click',()=>window.AdminTools?.openStudentHistory(studentsRosterData.find(s=>s.student_id===btn.dataset.id))));
     // Bind Table Row Actions
     tbody.querySelectorAll('.btn-table-quick-add').forEach(btn => {
       btn.addEventListener('click', async (e) => {
@@ -775,9 +745,9 @@
       if (error) throw error;
       student.current_points = newPoints;
       renderStudentsTable();
-      alert(`✅ เพิ่ม ${delta} แต้มให้ ${student.full_name} เรียบร้อยแล้ว (แต้มใหม่: ${newPoints.toLocaleString()} Pts)`);
+      notify(` เพิ่ม ${delta} แต้มให้ ${student.full_name} เรียบร้อยแล้ว (แต้มใหม่: ${newPoints.toLocaleString()} Pts)`);
     } catch (e) {
-      alert('เกิดข้อผิดพลาด: ' + e.message);
+      notify('เกิดข้อผิดพลาด: ' + e.message);
     }
   }
 
@@ -798,7 +768,7 @@
     }
 
     if (!student) {
-      alert('❌ ไม่พบข้อมูลนักเรียน: ' + studentId);
+      notify(' ไม่พบข้อมูลนักเรียน: ' + studentId);
       return;
     }
 
@@ -815,7 +785,7 @@
     
     if (student.line_user_id) {
       if (lineDot) lineDot.className = 'w-2.5 h-2.5 rounded-full bg-[#06C755]';
-      if (lineStatus) lineStatus.innerHTML = `สถานะ: <span class="text-[#06C755] font-black">ผูกบัญชี LINE แล้ว 🔗</span>`;
+      if (lineStatus) lineStatus.innerHTML = `สถานะ: <span class="text-[#06C755] font-black">ผูกบัญชี LINE แล้ว </span>`;
       if (btnUnlink) btnUnlink.style.display = 'flex';
     } else {
       if (lineDot) lineDot.className = 'w-2.5 h-2.5 rounded-full bg-surface-variant';
@@ -841,8 +811,6 @@
 
   async function unlinkStudentLineAccount() {
     if (!activeEditingStudent || !supabaseClient) return;
-    const confirmUnlink = confirm(`⚠️ ต้องการปลดล็อกการผูกบัญชี LINE ของ "${activeEditingStudent.full_name}" (รหัส ${activeEditingStudent.student_id}) ใช่หรือไม่?\n\nเมื่อปลดล็อกแล้ว นักเรียนจะสามารถนำบัญชี LINE มาผูกใหม่ได้ทันที`);
-    if (!confirmUnlink) return;
 
     try {
       const { error } = await supabaseClient
@@ -854,15 +822,17 @@
       activeEditingStudent.line_user_id = null;
       renderStudentsTable();
       openStudentEditorModal(activeEditingStudent.student_id);
-      alert(`✅ ปลดล็อกบัญชี LINE ให้นักเรียน "${activeEditingStudent.full_name}" เรียบร้อยแล้ว!`);
+      notify(` ปลดล็อกบัญชี LINE ให้นักเรียน "${activeEditingStudent.full_name}" เรียบร้อยแล้ว!`);
     } catch (e) {
-      alert('เกิดข้อผิดพลาด: ' + e.message);
+      notify('เกิดข้อผิดพลาด: ' + e.message);
     }
   }
 
   async function saveModalCustomPoints() {
     if (!activeEditingStudent || !supabaseClient) return;
-    const newPoints = Math.max(0, parseInt(document.getElementById('m-edit-custom-points').value, 10) || 0);
+    const rawPoints=document.getElementById('m-edit-custom-points').value.trim();
+    const newPoints=Number(rawPoints);
+    if(!rawPoints||!Number.isSafeInteger(newPoints)||newPoints<0){notify('ระบุแต้มเป็นจำนวนเต็มตั้งแต่ศูนย์');return;}
 
     try {
       const { error } = await supabaseClient
@@ -874,9 +844,9 @@
       activeEditingStudent.current_points = newPoints;
       document.getElementById('m-edit-std-points').textContent = `${newPoints.toLocaleString()} Pts`;
       renderStudentsTable();
-      alert(`✅ บันทึกแต้มสำเร็จ! แต้มใหม่คือ ${newPoints.toLocaleString()} Pts`);
+      notify(` บันทึกแต้มสำเร็จ! แต้มใหม่คือ ${newPoints.toLocaleString()} Pts`);
     } catch (e) {
-      alert('เกิดข้อผิดพลาด: ' + e.message);
+      notify('เกิดข้อผิดพลาด: ' + e.message);
     }
   }
 
@@ -893,9 +863,9 @@
       if (error) throw error;
       activeEditingStudent.phone_number = phone;
       renderStudentsTable();
-      alert('✅ บันทึกเบอร์โทรศัพท์เรียบร้อยแล้ว!');
+      notify(' บันทึกเบอร์โทรศัพท์เรียบร้อยแล้ว!');
     } catch (e) {
-      alert('เกิดข้อผิดพลาด: ' + e.message);
+      notify('เกิดข้อผิดพลาด: ' + e.message);
     }
   }
 
@@ -915,7 +885,7 @@
       document.getElementById('m-edit-custom-points').value = newPoints;
       renderStudentsTable();
     } catch (e) {
-      alert('เกิดข้อผิดพลาด: ' + e.message);
+      notify('เกิดข้อผิดพลาด: ' + e.message);
     }
   }
 
@@ -981,11 +951,10 @@
           <td class="py-3 px-3 text-[12px] text-on-surface-variant font-bold">${createdDate}</td>
           <td class="py-3 px-3 text-right">
             <div class="flex items-center justify-end gap-1.5">
-              <button class="btn-toggle-cpn-status px-2.5 py-1 rounded-[8px] bg-secondary-container hover:bg-secondary-container/80 text-[11px] font-bold cursor-pointer" data-id="${c.coupon_id}" data-status="${c.status}">
-                ${isActive ? 'ตัดใช้แล้ว' : 'รีเซ็ต'}
-              </button>
+              <button type="button" class="btn-coupon-detail admin-tool-button" data-id="${c.coupon_id}">${isActive ? 'ตรวจและส่งมอบ' : 'ดูรายละเอียด'}</button>
+              ${c.status==='REDEEMED'?`<button type="button" class="btn-toggle-cpn-status admin-tool-button" data-id="${c.coupon_id}" data-status="${c.status}">คืนสถานะพร้อมใช้</button>`:''}
               <button class="btn-delete-cpn px-2.5 py-1 rounded-[8px] bg-red-100 text-red-700 hover:bg-red-600 hover:text-white text-[11px] font-bold cursor-pointer" data-id="${c.coupon_id}" data-code="${c.coupon_code}">
-                ลบ 🗑️
+                ลบ 
               </button>
             </div>
           </td>
@@ -993,6 +962,7 @@
       `;
     }).join('');
 
+    tbody.querySelectorAll('.btn-coupon-detail').forEach(btn=>btn.addEventListener('click',()=>window.AdminTools?.openCouponDetail(btn.dataset.id)));
     tbody.querySelectorAll('.btn-toggle-cpn-status').forEach(btn => {
       btn.addEventListener('click', async () => {
         const cId = btn.getAttribute('data-id');
@@ -1006,9 +976,7 @@
       btn.addEventListener('click', async () => {
         const cId = btn.getAttribute('data-id');
         const code = btn.getAttribute('data-code');
-        if (confirm(`ยืนยันการลบคูปอง ${code} ออกจากระบบถาวรหรือไม่?`)) {
-          await deleteCoupon(cId);
-        }
+        await deleteCoupon(cId);
       });
     });
   }
@@ -1037,7 +1005,7 @@
     const rewardId = selectEl ? selectEl.value : (adminRewards[0]?.reward_id || '00000000-0000-0000-0000-000000000001');
 
     if (!studentId || !rewardId || !supabaseClient) {
-      alert('กรุณาระบุรหัสนักเรียนและเลือกของรางวัล');
+      notify('กรุณาระบุรหัสนักเรียนและเลือกของรางวัล');
       return;
     }
 
@@ -1054,12 +1022,12 @@
         });
 
       if (error) throw error;
-      alert(`✅ ออกคูปองสำเร็จ! รหัส ${uniqueCode} มอบให้นักเรียน ${studentId} เรียบร้อยแล้ว`);
+      notify(` ออกคูปองสำเร็จ! รหัส ${uniqueCode} มอบให้นักเรียน ${studentId} เรียบร้อยแล้ว`);
       if (typeof confetti === 'function') confetti({ particleCount: 50 });
       closeIssueCouponModal();
       await fetchAdminCoupons();
     } catch (e) {
-      alert('เกิดข้อผิดพลาด: ' + e.message);
+      notify('เกิดข้อผิดพลาด: ' + e.message);
     }
   }
 
@@ -1077,7 +1045,7 @@
       if (error) throw error;
       await fetchAdminCoupons();
     } catch (e) {
-      alert('เกิดข้อผิดพลาด: ' + e.message);
+      notify('เกิดข้อผิดพลาด: ' + e.message);
     }
   }
 
@@ -1090,10 +1058,10 @@
         .eq('coupon_id', couponId);
 
       if (error) throw error;
-      alert('✅ ลบคูปองเรียบร้อยแล้ว');
+      notify(' ลบคูปองเรียบร้อยแล้ว');
       await fetchAdminCoupons();
     } catch (e) {
-      alert('เกิดข้อผิดพลาด: ' + e.message);
+      notify('เกิดข้อผิดพลาด: ' + e.message);
     }
   }
 
@@ -1183,6 +1151,7 @@
       }
     });
 
+    document.getElementById('btn-m-student-history')?.addEventListener('click',()=>window.AdminTools?.openStudentHistory(activeEditingStudent));
     // Student Editor Modal Events
     document.getElementById('btn-close-edit-student-modal')?.addEventListener('click', closeStudentEditorModal);
     document.getElementById('btn-close-edit-student-backdrop')?.addEventListener('click', closeStudentEditorModal);
