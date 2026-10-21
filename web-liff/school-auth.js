@@ -15,7 +15,7 @@
     async status() {
       const { data, error } = await window.createSecureClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY)
         .rpc('get_school_verification', {});
-      if (error) throw new Error(error.message);
+      if (error) { const failure = new Error(error.message); failure.requiresLineLogin = error.code === '28000'; throw failure; }
       if (typeof data?.verified !== 'boolean') throw new Error('ตรวจสอบการยืนยันบัญชีไม่สำเร็จ');
       return data;
     },

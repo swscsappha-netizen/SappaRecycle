@@ -86,6 +86,7 @@
           await lookupStudentForBinding(); return;
         }
       } catch (error) {
+        if (error.requiresLineLogin) { hideSplashScreen(); showIdentityRetry(true); return; }
         if (error.requiresSchoolVerification) {
           openLineBindingModal(currentLineProfile); hideSplashScreen();
           await lookupStudentForBinding(); showToast(error.message, 'error', 10000); return;
@@ -148,13 +149,22 @@
     } catch { return false; } // Profile updates must never block access to points.
   }
 
-  function showIdentityRetry() {
+  function showIdentityRetry(requiresLineLogin = false) {
     if (document.getElementById('identity-retry')) return;
     const panel = document.createElement('div');
     panel.id='identity-retry';panel.className='identity-retry';
     panel.setAttribute('role','alert');
     panel.innerHTML='<div><h2>ยังตรวจสอบบัญชีไม่ได้</h2><p>กรุณาตรวจสอบอินเทอร์เน็ต แล้วลองใหม่ ข้อมูลการยืนยันเดิมยังอยู่</p><button type="button">ลองใหม่</button></div>';
-    panel.querySelector('button').addEventListener('click',()=>window.location.reload());
+    if (requiresLineLogin) {
+      panel.querySelector('h2').textContent='เซสชัน LINE หมดอายุ';
+      panel.querySelector('p').textContent='เข้าสู่ระบบ LINE อีกครั้งเพื่อใช้งานต่อ การยืนยันอีเมลโรงเรียนเดิมยังอยู่';
+      panel.querySelector('button').textContent='เข้าสู่ระบบ LINE ใหม่';
+    }
+    panel.querySelector('button').addEventListener('click',()=>{
+      if (!requiresLineLogin) { window.location.reload(); return; }
+      window.liff.logout();
+      window.liff.login({redirectUri:window.location.origin+window.location.pathname});
+    });
     document.body.appendChild(panel);
   }
 
