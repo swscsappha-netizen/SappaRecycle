@@ -10,6 +10,11 @@
 (function () {
   'use strict';
 
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  }
+
+
   // App State
   let supabaseClient = null;
   let currentTab = 'tab-home';
@@ -66,7 +71,7 @@
         if (liff.isLoggedIn()) {
           liffLoggedIn = true;
           currentLineProfile = await liff.getProfile();
-          console.log(" LINE Profile Active:", currentLineProfile.displayName, currentLineProfile.userId);
+          console.log(" LINE authentication ready");
         } else {
           // Strict LINE Login: User must authenticate with LINE OAuth!
           console.log(" Not logged in to LINE -> Initiating LINE Login...");
@@ -234,7 +239,7 @@
     window.EcoMotion?.status(isError ? 'error' : isWarning ? 'wait' : 'idle');
     toast.innerHTML = `
       <span class="material-symbols-rounded text-xl shrink-0" style="font-variation-settings: 'FILL' 1;">${iconName}</span>
-      <span class="font-display font-extrabold text-[13px] leading-tight flex-1">${message}</span>
+      <span class="font-display font-extrabold text-[13px] leading-tight flex-1">${escapeHtml(message)}</span>
     `;
 
     container.appendChild(toast);
@@ -553,7 +558,7 @@
         <div class="bg-surface-container-lowest rounded-[24px] sm:rounded-[32px] flex flex-col p-2 sm:p-2.5 reward-card h-full ${isSoldOut ? 'opacity-70 grayscale-[30%]' : ''}">
           <div class="h-28 sm:h-36 w-full rounded-[18px] sm:rounded-[24px] flex items-center justify-center relative p-3 sm:p-5 overflow-visible" style="background-color: ${isSoldOut ? '#E6E9E7' : bgColor};">
             <span class="material-symbols-rounded reward-art-leaf" aria-hidden="true">eco</span>
-            <img alt="${r.title}" class="max-h-full object-contain drop-shadow-md transition-transform hover:scale-110 duration-300" src="${r.image_url}">
+            <img alt="${escapeHtml(r.title)}" class="max-h-full object-contain drop-shadow-md transition-transform hover:scale-110 duration-300" src="${escapeHtml(r.image_url)}">
             
             <div class="absolute -top-2.5 -right-1.5 sm:-top-3 sm:-right-2 bg-surface-container-lowest px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border-2 shadow-sm rotate-3 illustrative-badge ${isSoldOut ? 'border-surface-variant text-on-surface-variant' : r.stock_quantity <= 3 ? 'border-error-container text-error' : 'border-[#BBDEFB] text-[#1976D2]'}">
               <span class="font-display text-[11px] sm:text-[13px] font-black tracking-tight whitespace-nowrap">
@@ -564,11 +569,11 @@
 
           <div class="p-2 sm:p-3 pt-3 sm:pt-4 flex flex-col flex-grow justify-between gap-2.5 sm:gap-3.5 text-center">
             <div>
-              <h3 class="font-display text-[13px] sm:text-[16px] text-on-surface font-extrabold leading-tight tracking-tight line-clamp-2">${r.title}</h3>
+              <h3 class="font-display text-[13px] sm:text-[16px] text-on-surface font-extrabold leading-tight tracking-tight line-clamp-2">${escapeHtml(r.title)}</h3>
               <p class="font-display text-[13px] sm:text-[15px] text-[#F57F17] mt-0.5 sm:mt-1 font-black"><span class="material-symbols-rounded reward-point-icon" aria-hidden="true">recycling</span>${r.points_required.toLocaleString()} <small>แต้ม</small></p>
             </div>
 
-            <button type="button" class="w-full btn-redeem" data-detail-reward="${r.reward_id}" aria-label="ดูรายละเอียด ${r.title}">
+            <button type="button" class="w-full btn-redeem" data-detail-reward="${escapeHtml(r.reward_id)}" aria-label="ดูรายละเอียด ${escapeHtml(r.title)}">
               ${isSoldOut ? 'ดูของที่หมดชั่วคราว' : isInsufficient ? 'อีก '+neededPts.toLocaleString()+' แต้ม · ดูรายละเอียด' : 'ดูรายละเอียด →'}
             </button>
           </div>
@@ -605,15 +610,15 @@
       `;
     } else {
       listEl.innerHTML = displayList.map(c => `
-        <div class="bg-surface-container-lowest rounded-[28px] p-4 reward-card coupon-ticket flex items-center justify-between cursor-pointer hover:border-primary-container transition-all" data-code="${c.coupon_code}" data-status="${c.status}" role="button" tabindex="0" aria-label="${c.status === 'ACTIVE' ? 'แสดงคูปอง' : 'คูปองใช้แล้ว'}">
+        <div class="bg-surface-container-lowest rounded-[28px] p-4 reward-card coupon-ticket flex items-center justify-between cursor-pointer hover:border-primary-container transition-all" data-code="${escapeHtml(c.coupon_code)}" data-status="${escapeHtml(c.status)}" role="button" tabindex="0" aria-label="${c.status === 'ACTIVE' ? 'แสดงคูปอง' : 'คูปองใช้แล้ว'}">
           <div class="coupon-main">
             <div class="coupon-icon w-11 h-11 rounded-[16px] ${c.status === 'ACTIVE' ? 'bg-primary-container/20 text-primary' : 'bg-surface-variant text-on-surface-variant'} flex items-center justify-center">
               <span class="material-symbols-rounded text-2xl">${c.status === 'ACTIVE' ? 'local_activity' : 'check_circle'}</span>
             </div>
             <div class="coupon-copy">
               <span class="coupon-status-label">${c.status === 'ACTIVE' ? 'พร้อมรับรางวัล' : 'รับของแล้ว'}</span>
-              <h4 class="font-display font-extrabold text-[15px] text-on-surface">${c.reward_title}</h4>
-              <p class="coupon-code">รหัส ${c.coupon_code}</p>
+              <h4 class="font-display font-extrabold text-[15px] text-on-surface">${escapeHtml(c.reward_title)}</h4>
+              <p class="coupon-code">รหัส ${escapeHtml(c.coupon_code)}</p>
             </div>
           </div>
           <div class="coupon-action"><span class="material-symbols-rounded" aria-hidden="true">${c.status === 'ACTIVE' ? 'qr_code_2' : 'check_circle'}</span><span>${c.status === 'ACTIVE' ? 'แสดง QR' : 'ใช้แล้ว'}</span></div>
@@ -933,7 +938,7 @@
     const select = document.getElementById('adm-add-cpn-reward');
     if (!select) return;
     select.innerHTML = rewardsData.map(r => `
-      <option value="${r.reward_id}">${r.title} (${r.points_required} Pts)</option>
+      <option value="${escapeHtml(r.reward_id)}">${escapeHtml(r.title)} (${r.points_required} Pts)</option>
     `).join('');
   }
 
@@ -1106,16 +1111,16 @@
         <div class="bg-surface-container-lowest p-2.5 rounded-[14px] border border-secondary-container flex items-center justify-between gap-2 shadow-xs">
           <div class="truncate">
             <div class="flex items-center gap-1.5">
-              <span class="text-[10px] font-black px-2 py-0.5 rounded-full ${isActive ? 'bg-primary-container/20 text-primary' : 'bg-surface-variant text-on-surface-variant'}">${c.status}</span>
-              <strong class="font-display text-[12px] text-on-surface truncate">${c.rewards?.title || 'ของรางวัล'}</strong>
+              <span class="text-[10px] font-black px-2 py-0.5 rounded-full ${isActive ? 'bg-primary-container/20 text-primary' : 'bg-surface-variant text-on-surface-variant'}">${escapeHtml(c.status)}</span>
+              <strong class="font-display text-[12px] text-on-surface truncate">${escapeHtml(c.rewards?.title || 'ของรางวัล')}</strong>
             </div>
-            <p class="text-[10px] text-on-surface-variant font-bold truncate">รหัส: ${c.coupon_code} | นักเรียน: ${c.students?.full_name || c.student_id}</p>
+            <p class="text-[10px] text-on-surface-variant font-bold truncate">รหัส: ${escapeHtml(c.coupon_code)} | นักเรียน: ${escapeHtml(c.students?.full_name || c.student_id)}</p>
           </div>
           <div class="flex items-center gap-1 shrink-0">
-            <button class="btn-adm-toggle-cpn text-[10px] font-bold px-2 py-1 rounded-[8px] bg-secondary-container hover:bg-secondary-container/80 cursor-pointer" data-id="${c.coupon_id}" data-status="${c.status}">
+            <button class="btn-adm-toggle-cpn text-[10px] font-bold px-2 py-1 rounded-[8px] bg-secondary-container hover:bg-secondary-container/80 cursor-pointer" data-id="${escapeHtml(c.coupon_id)}" data-status="${escapeHtml(c.status)}">
               ${isActive ? 'ตัดใช้แล้ว' : 'รีเซ็ต'}
             </button>
-            <button class="btn-adm-delete-cpn text-[10px] font-bold px-2 py-1 rounded-[8px] bg-red-100 text-red-700 hover:bg-red-600 hover:text-white cursor-pointer" data-id="${c.coupon_id}" data-code="${c.coupon_code}">
+            <button class="btn-adm-delete-cpn text-[10px] font-bold px-2 py-1 rounded-[8px] bg-red-100 text-red-700 hover:bg-red-600 hover:text-white cursor-pointer" data-id="${escapeHtml(c.coupon_id)}" data-code="${escapeHtml(c.coupon_code)}">
               ลบ 
             </button>
           </div>

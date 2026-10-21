@@ -12,6 +12,11 @@
 (function () {
   'use strict';
 
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  }
+
+
   function notify(message){
     if(window.AdminTools?.notify){window.AdminTools.notify(message);return;}
     let node=document.getElementById('admin-init-notice');if(!node){node=document.createElement('p');node.id='admin-init-notice';node.setAttribute('role','alert');document.body.prepend(node);}node.textContent=message;
@@ -31,6 +36,7 @@
   let studentSearchQuery = '';
   let studentRoomFilter = 'ALL';
   let activeEditingStudent = null;
+  let studentRosterRevision = 0;
 
   let couponFilter = 'ALL';
   let currentTimeRange = 'today';
@@ -142,11 +148,20 @@
   }
 
   async function loadInitialData() {
-    await fetchAllRecycleLogs();
-    await fetchAdminRewards();
-    await fetchAdminCoupons();
-    await fetchStudentsRoster();
+    await Promise.all([fetchAllRecycleLogs(),fetchAdminRewards(),fetchAdminCoupons(),fetchStudentsRoster()]);
     renderAnalyticsView();
+  }
+
+  async function readAdminPages(table, columns, key) {
+    const rows = [], pageSize = 1000;
+    for (let offset = 0; ; offset += pageSize) {
+      const {data,error} = await supabaseClient.from(table).select(columns)
+        .order(key,{ascending:true}).range(offset,offset + pageSize - 1);
+      if (error) throw error;
+      if (!Array.isArray(data)) throw new Error('ข้อมูลจากระบบไม่สมบูรณ์');
+      rows.push(...data);
+      if (data.length < pageSize) return rows;
+    }
   }
 
   // --------------------------------------------------------------------------
@@ -155,24 +170,18 @@
   async function fetchAllRecycleLogs() {
     if (!supabaseClient) return;
     try {
-      const { data, error } = await supabaseClient
-        .from('recycle_logs')
-        .select('*, students(full_name, room, no)')
-        .order('created_at', { ascending: false });
-
-      if (data && !error) {
-        allRecycleLogs = data;
-      }
+      allRecycleLogs = await readAdminPages('recycle_logs','*, students(full_name, room, no)','log_id');
     } catch (e) {
-      console.warn("Recycle logs fetch error:", e);
+      notify('โหลดสถิติรีไซเคิลไม่สำเร็จ ข้อมูลที่แสดงอาจเป็นข้อมูลเดิม กรุณาลองใหม่');
     }
   }
 
   function filterLogsByTime(range) {
     const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const today = bangkokDay(now);
+    const startOfToday = new Date(today+'T00:00:00+07:00');
+    const sevenDaysAgo = new Date(startOfToday.getTime() - 6 * 24 * 60 * 60 * 1000);
+    const startOfMonth = new Date(today.slice(0,7)+'-01T00:00:00+07:00');
 
     return allRecycleLogs.filter(log => {
       const logDate = new Date(log.created_at);
@@ -181,6 +190,10 @@
       if (range === 'month') return logDate >= startOfMonth;
       return true;
     });
+  }
+
+  function bangkokDay(value) {
+    return new Date(new Date(value).getTime()+7*60*60*1000).toISOString().slice(0,10);
   }
 
   function renderAnalyticsView() {
@@ -193,7 +206,7 @@
     logs.forEach(l => {
       if (l.item_type === 'PET') petCount += 1;
       else if (l.item_type === 'CAN') canCount += 1;
-      totalPoints += (l.points_earned || (l.item_type === 'PET' ? 10 : 20));
+      totalPoints += Number(l.points_earned ?? 0);
     });
 
     const co2Saved = (petCount * 0.0825) + (canCount * 0.095);
@@ -210,7 +223,7 @@
 
     renderDailyTrendChart(logs);
     renderRatioDonutChart(petCount, canCount);
-    renderClassroomLeaderboard();
+    renderClassroomLeaderboard(logs);
   }
 
   function renderDailyTrendChart(logs) {
@@ -222,15 +235,15 @@
 
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
-      d.setDate(d.getDate() - i);
-      const key = d.toISOString().split('T')[0];
-      const thaiDate = d.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short' });
+      d.setTime(d.getTime() - i*86400000);
+      const key = bangkokDay(d);
+      const thaiDate = d.toLocaleDateString('th-TH', { timeZone:'Asia/Bangkok',weekday: 'short', day: 'numeric', month: 'short' });
       daysMap[key] = { label: thaiDate, pet: 0, can: 0 };
       dayLabels.push(key);
     }
 
     logs.forEach(l => {
-      const k = l.created_at ? l.created_at.split('T')[0] : '';
+      const k = l.created_at ? bangkokDay(l.created_at) : '';
       if (daysMap[k]) {
         if (l.item_type === 'PET') daysMap[k].pet += 1;
         else if (l.item_type === 'CAN') daysMap[k].can += 1;
@@ -319,17 +332,17 @@
     }
   }
 
-  function renderClassroomLeaderboard() {
+  function renderClassroomLeaderboard(logs = allRecycleLogs) {
     const listEl = document.getElementById('leaderboard-classroom-list');
     if (!listEl) return;
 
     const roomCounts = {};
-    allRecycleLogs.forEach(l => {
+    logs.forEach(l => {
       const room = l.students?.room;
       if (room) {
         if (!roomCounts[room]) roomCounts[room] = { room: room, count: 0, points: 0 };
         roomCounts[room].count += 1;
-        roomCounts[room].points += (l.points_earned || 10);
+        roomCounts[room].points += Number(l.points_earned ?? 0);
       }
     });
 
@@ -352,7 +365,7 @@
         <div class="flex items-center gap-3">
           <span class="text-xl">${MEDALS[i] || ''}</span>
           <div>
-            <strong class="font-display text-[14px] text-on-surface">ชั้น ${r.room}</strong>
+            <strong class="font-display text-[14px] text-on-surface">ชั้น ${escapeHtml(r.room)}</strong>
             <span class="text-[11px] text-on-surface-variant font-bold block">${r.count} ชิ้นรีไซเคิล</span>
           </div>
         </div>
@@ -372,13 +385,14 @@
         .select('*')
         .order('points_required', { ascending: true });
 
+      if (error) throw error;
       if (data && !error) {
         adminRewards = data;
         renderAdminRewards();
         populateIssueRewardDropdown();
       }
     } catch (e) {
-      console.warn("Rewards fetch error:", e);
+      notify('โหลดของรางวัลไม่สำเร็จ ข้อมูลที่แสดงอาจเป็นข้อมูลเดิม กรุณาลองใหม่');
     }
   }
 
@@ -400,14 +414,14 @@
         <div class="bg-white rounded-[24px] p-4 admin-card flex flex-col justify-between gap-4 ${!isActive ? 'opacity-60 bg-gray-50' : ''}">
           <div class="flex gap-3.5">
             <div class="w-20 h-20 rounded-[18px] bg-secondary-container/30 p-2 flex items-center justify-center shrink-0 border border-secondary-container">
-              <img alt="${r.title}" class="max-h-full object-contain" src="${img}">
+              <img alt="${escapeHtml(r.title)}" class="max-h-full object-contain" src="${escapeHtml(img)}">
             </div>
             <div class="flex flex-col justify-between truncate">
               <div>
                 <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${isActive ? 'bg-primary-container/20 text-primary' : 'bg-red-100 text-red-700'}">
                   ${isActive ? 'เปิดแสดง' : 'ปิดการแสดง'}
                 </span>
-                <h3 class="font-display text-[16px] font-black text-on-surface mt-1 truncate" title="${r.title}">${r.title}</h3>
+                <h3 class="font-display text-[16px] font-black text-on-surface mt-1 truncate" title="${escapeHtml(r.title)}">${escapeHtml(r.title)}</h3>
               </div>
               <div class="flex items-center gap-2">
                 <strong class="text-[15px] font-black text-[#b89446]">${r.points_required.toLocaleString()} Pts</strong>
@@ -420,20 +434,20 @@
             <div class="flex items-center justify-between">
               <span class="text-[11px] font-bold text-on-surface-variant">เติมสต็อก:</span>
               <div class="flex gap-1.5">
-                <button class="btn-stock-quick px-2 py-1 rounded-[8px] bg-secondary-container hover:bg-secondary-container/80 text-[11px] font-bold cursor-pointer" data-id="${r.reward_id}" data-delta="5">+5</button>
-                <button class="btn-stock-quick px-2 py-1 rounded-[8px] bg-secondary-container hover:bg-secondary-container/80 text-[11px] font-bold cursor-pointer" data-id="${r.reward_id}" data-delta="10">+10</button>
-                <button class="btn-stock-quick px-2 py-1 rounded-[8px] bg-secondary-container hover:bg-secondary-container/80 text-[11px] font-bold cursor-pointer" data-id="${r.reward_id}" data-delta="25">+25</button>
+                <button class="btn-stock-quick px-2 py-1 rounded-[8px] bg-secondary-container hover:bg-secondary-container/80 text-[11px] font-bold cursor-pointer" data-id="${escapeHtml(r.reward_id)}" data-delta="5">+5</button>
+                <button class="btn-stock-quick px-2 py-1 rounded-[8px] bg-secondary-container hover:bg-secondary-container/80 text-[11px] font-bold cursor-pointer" data-id="${escapeHtml(r.reward_id)}" data-delta="10">+10</button>
+                <button class="btn-stock-quick px-2 py-1 rounded-[8px] bg-secondary-container hover:bg-secondary-container/80 text-[11px] font-bold cursor-pointer" data-id="${escapeHtml(r.reward_id)}" data-delta="25">+25</button>
               </div>
             </div>
 
             <div class="grid grid-cols-3 gap-1.5 pt-1">
-              <button class="btn-edit-reward py-2 rounded-[10px] bg-surface-container hover:bg-surface-variant font-bold text-[12px] cursor-pointer" data-id="${r.reward_id}">
+              <button class="btn-edit-reward py-2 rounded-[10px] bg-surface-container hover:bg-surface-variant font-bold text-[12px] cursor-pointer" data-id="${escapeHtml(r.reward_id)}">
                  แก้ไข
               </button>
-              <button class="btn-toggle-active-reward py-2 rounded-[10px] ${isActive ? 'bg-yellow-50 text-yellow-800 hover:bg-yellow-100' : 'bg-primary-container/20 text-primary hover:bg-primary-container/30'} font-bold text-[12px] cursor-pointer" data-id="${r.reward_id}" data-active="${isActive}">
+              <button class="btn-toggle-active-reward py-2 rounded-[10px] ${isActive ? 'bg-yellow-50 text-yellow-800 hover:bg-yellow-100' : 'bg-primary-container/20 text-primary hover:bg-primary-container/30'} font-bold text-[12px] cursor-pointer" data-id="${escapeHtml(r.reward_id)}" data-active="${isActive}">
                 ${isActive ? 'ซ่อน' : 'แสดง'}
               </button>
-              <button class="btn-delete-reward py-2 rounded-[10px] bg-red-50 text-red-700 hover:bg-red-600 hover:text-white font-bold text-[12px] cursor-pointer transition-colors" data-id="${r.reward_id}" data-title="${r.title}">
+              <button class="btn-delete-reward py-2 rounded-[10px] bg-red-50 text-red-700 hover:bg-red-600 hover:text-white font-bold text-[12px] cursor-pointer transition-colors" data-id="${escapeHtml(r.reward_id)}" data-title="${escapeHtml(r.title)}">
                 ลบ 
               </button>
             </div>
@@ -615,6 +629,7 @@
   // --------------------------------------------------------------------------
   async function fetchStudentsRoster() {
     if (!supabaseClient) return;
+    const revision = ++studentRosterRevision;
 
     try {
       let query = supabaseClient
@@ -630,8 +645,10 @@
       }
 
       if (studentRoomFilter && studentRoomFilter !== 'ALL') {
-        if (studentRoomFilter.startsWith('ม.')) {
-          query = query.ilike('room', `%${studentRoomFilter}%`);
+        if (/^ม\.\d+\/\d+$/.test(studentRoomFilter)) {
+          query = query.eq('room', studentRoomFilter);
+        } else if (/^ม\.\d+$/.test(studentRoomFilter)) {
+          query = query.ilike('room', studentRoomFilter+'/%');
         }
       }
 
@@ -642,13 +659,15 @@
         .order('student_id', { ascending: true })
         .range(from, to);
 
-      if (data && !error) {
+      if (revision !== studentRosterRevision) return;
+      if (error) throw error;
+      if (data) {
         studentsRosterData = data;
         totalStudentsCount = count !== null ? count : data.length;
         renderStudentsTable();
       }
     } catch (e) {
-      console.warn("Students roster fetch error:", e);
+      if (revision === studentRosterRevision) notify('โหลดข้อมูลนักเรียนไม่สำเร็จ กรุณาลองค้นหาหรือเปลี่ยนหน้าอีกครั้ง');
     }
   }
 
@@ -657,7 +676,7 @@
     if (!tbody) return;
 
     const totalPages = Math.ceil(totalStudentsCount / STUDENT_PAGE_SIZE) || 1;
-    const startIdx = (currentStudentPage - 1) * STUDENT_PAGE_SIZE + 1;
+    const startIdx = studentsRosterData.length ? (currentStudentPage - 1) * STUDENT_PAGE_SIZE + 1 : 0;
     const endIdx = Math.min(startIdx + studentsRosterData.length - 1, totalStudentsCount);
 
     document.getElementById('adm-students-matched-count').textContent = `แสดง ${startIdx} - ${endIdx} จากทั้งหมด ${totalStudentsCount.toLocaleString()} คน`;
@@ -677,31 +696,31 @@
       const isCouncil = s.is_council_member || s.student_id === '32650';
       return `
         <tr class="border-b border-secondary-container/40 hover:bg-surface-container-low/50">
-          <td data-label="รหัสนักเรียน" class="student-id-cell py-3 px-3 font-display font-black text-primary">${s.student_id}</td>
+          <td data-label="รหัสนักเรียน" class="student-id-cell py-3 px-3 font-display font-black text-primary">${escapeHtml(s.student_id)}</td>
           <td class="student-name-cell py-3 px-3">
             <div class="flex items-center gap-1.5 flex-wrap">
-              <strong class="font-bold text-on-surface">${s.full_name}</strong>
+              <strong class="font-bold text-on-surface">${escapeHtml(s.full_name)}</strong>
               ${isCouncil ? '<span class="text-[10px] font-black text-[#b45309] bg-[#fef3c7] px-1.5 py-0.2 rounded border border-[#fde047]">สภานักเรียน</span>' : ''}
               ${s.line_user_id ? '<span class="text-[9px] font-black text-[#06C755] bg-[#E8F8EE] px-1.5 py-0.2 rounded border border-[#86EFAC]">ผูก LINE แล้ว </span>' : '<span class="text-[9px] font-bold text-on-surface-variant/60 bg-surface-container px-1.5 py-0.2 rounded">ยังไม่ผูก LINE</span>'}
             </div>
           </td>
-          <td data-label="ชั้น / ห้อง" class="student-room-cell py-3 px-3 font-bold text-on-surface-variant">${s.room} · เลขที่ ${s.no || '-'}</td>
+          <td data-label="ชั้น / ห้อง" class="student-room-cell py-3 px-3 font-bold text-on-surface-variant">${escapeHtml(s.room)} · เลขที่ ${escapeHtml(s.no || '-')}</td>
           <td data-label="ติดต่อ" class="student-phone-cell py-3 px-3 text-[12px] font-bold ${s.phone_number ? 'text-on-surface' : 'text-on-surface-variant/60'}">
-            ${s.phone_number || 'ยังไม่ได้ระบุ'}
+            ${escapeHtml(s.phone_number || 'ยังไม่ได้ระบุ')}
           </td>
           <td data-label="แต้มสะสม" class="student-points-cell py-3 px-3 font-display font-black text-primary text-[15px]">
             ${(s.current_points || 0).toLocaleString()} <small>แต้ม</small>
           </td>
           <td class="student-actions-cell py-3 px-3 text-right">
             <div class="flex items-center justify-end gap-1">
-              <button class="btn-table-quick-add text-[11px] font-black px-2 py-1 rounded-[8px] bg-primary-container/20 text-primary hover:bg-primary hover:text-white cursor-pointer" data-id="${s.student_id}" data-delta="50">
+              <button class="btn-table-quick-add text-[11px] font-black px-2 py-1 rounded-[8px] bg-primary-container/20 text-primary hover:bg-primary hover:text-white cursor-pointer" data-id="${escapeHtml(s.student_id)}" data-delta="50">
                 +50
               </button>
-              <button class="btn-table-quick-add text-[11px] font-black px-2 py-1 rounded-[8px] bg-primary-container/20 text-primary hover:bg-primary hover:text-white cursor-pointer" data-id="${s.student_id}" data-delta="100">
+              <button class="btn-table-quick-add text-[11px] font-black px-2 py-1 rounded-[8px] bg-primary-container/20 text-primary hover:bg-primary hover:text-white cursor-pointer" data-id="${escapeHtml(s.student_id)}" data-delta="100">
                 +100
               </button>
-              <button type="button" class="btn-table-history text-[11px] px-2.5 py-1 rounded-[8px] bg-secondary-container cursor-pointer" data-id="${s.student_id}"><span class="material-symbols-rounded" aria-hidden="true">history</span> ประวัติแต้ม</button>
-              <button class="btn-table-manage-std text-[11px] font-bold px-2.5 py-1 rounded-[8px] bg-secondary-container hover:bg-secondary-container/80 cursor-pointer" data-id="${s.student_id}">
+              <button type="button" class="btn-table-history text-[11px] px-2.5 py-1 rounded-[8px] bg-secondary-container cursor-pointer" data-id="${escapeHtml(s.student_id)}"><span class="material-symbols-rounded" aria-hidden="true">history</span> ประวัติแต้ม</button>
+              <button class="btn-table-manage-std text-[11px] font-bold px-2.5 py-1 rounded-[8px] bg-secondary-container hover:bg-secondary-container/80 cursor-pointer" data-id="${escapeHtml(s.student_id)}">
                  จัดการ
               </button>
             </div>
@@ -896,25 +915,18 @@
     const select = document.getElementById('issue-reward-select');
     if (!select) return;
     select.innerHTML = adminRewards.map(r => `
-      <option value="${r.reward_id}">${r.title} (${r.points_required} Pts)</option>
+      <option value="${escapeHtml(r.reward_id)}">${escapeHtml(r.title)} (${r.points_required} Pts)</option>
     `).join('');
   }
 
   async function fetchAdminCoupons() {
     if (!supabaseClient) return;
     try {
-      const { data, error } = await supabaseClient
-        .from('coupons')
-        .select('*, students(full_name, room, no), rewards(title)')
-        .order('created_at', { ascending: false })
-        .limit(40);
-
-      if (data && !error) {
-        adminCoupons = data;
-        renderAdminCoupons();
-      }
+      const data = await readAdminPages('coupons','*, students(full_name, room, no), rewards(title)','coupon_id');
+      adminCoupons = data.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+      renderAdminCoupons();
     } catch (e) {
-      console.warn("Coupons fetch error:", e);
+      notify('โหลดคูปองไม่สำเร็จ ข้อมูลที่แสดงอาจเป็นข้อมูลเดิม กรุณาลองใหม่');
     }
   }
 
@@ -940,20 +952,20 @@
 
       return `
         <tr class="border-b border-secondary-container/40 hover:bg-surface-container-low/50">
-          <td class="py-3 px-3 font-display font-bold text-primary">${c.coupon_code}</td>
-          <td class="py-3 px-3 font-bold">${c.rewards?.title || 'ของรางวัล'}</td>
-          <td class="py-3 px-3 font-bold">${studentName} ${studentRoom}</td>
+          <td class="py-3 px-3 font-display font-bold text-primary">${escapeHtml(c.coupon_code)}</td>
+          <td class="py-3 px-3 font-bold">${escapeHtml(c.rewards?.title || 'ของรางวัล')}</td>
+          <td class="py-3 px-3 font-bold">${escapeHtml(studentName)} ${escapeHtml(studentRoom)}</td>
           <td class="py-3 px-3">
             <span class="text-[11px] font-black px-2.5 py-1 rounded-full ${isActive ? 'bg-primary-container/20 text-primary' : 'bg-surface-variant text-on-surface-variant'}">
-              ${c.status}
+              ${escapeHtml(c.status)}
             </span>
           </td>
           <td class="py-3 px-3 text-[12px] text-on-surface-variant font-bold">${createdDate}</td>
           <td class="py-3 px-3 text-right">
             <div class="flex items-center justify-end gap-1.5">
-              <button type="button" class="btn-coupon-detail admin-tool-button" data-id="${c.coupon_id}">${isActive ? 'ตรวจและส่งมอบ' : 'ดูรายละเอียด'}</button>
-              ${c.status==='REDEEMED'?`<button type="button" class="btn-toggle-cpn-status admin-tool-button" data-id="${c.coupon_id}" data-status="${c.status}">คืนสถานะพร้อมใช้</button>`:''}
-              <button class="btn-delete-cpn px-2.5 py-1 rounded-[8px] bg-red-100 text-red-700 hover:bg-red-600 hover:text-white text-[11px] font-bold cursor-pointer" data-id="${c.coupon_id}" data-code="${c.coupon_code}">
+              <button type="button" class="btn-coupon-detail admin-tool-button" data-id="${escapeHtml(c.coupon_id)}">${isActive ? 'ตรวจและส่งมอบ' : 'ดูรายละเอียด'}</button>
+              ${c.status==='REDEEMED'?`<button type="button" class="btn-toggle-cpn-status admin-tool-button" data-id="${escapeHtml(c.coupon_id)}" data-status="${escapeHtml(c.status)}">คืนสถานะพร้อมใช้</button>`:''}
+              <button class="btn-delete-cpn px-2.5 py-1 rounded-[8px] bg-red-100 text-red-700 hover:bg-red-600 hover:text-white text-[11px] font-bold cursor-pointer" data-id="${escapeHtml(c.coupon_id)}" data-code="${escapeHtml(c.coupon_code)}">
                 ลบ 
               </button>
             </div>
